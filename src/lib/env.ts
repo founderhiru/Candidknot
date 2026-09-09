@@ -21,7 +21,26 @@ export const env = createEnv({
     // actual Postgres instance is provisioned separately.
     DATABASE_URL: z.string().url(),
     // @polsia:slot env_vars_server start
-    // Modules append additional server-side env vars here at install time.
+    // Auth (Phase 2). Secret used by better-auth to sign session cookies —
+    // generate with `openssl rand -base64 32`. Never reused across environments.
+    SESSION_SECRET: z.string().min(32),
+    // Google OAuth ("Continue with Google"). Create credentials at
+    // https://console.cloud.google.com/apis/credentials — Authorized
+    // redirect URI must be `${NEXT_PUBLIC_APP_URL}/api/auth/callback/google`
+    // (e.g. https://canidknot-web.onrender.com/api/auth/callback/google in
+    // prod, http://localhost:3000/api/auth/callback/google in dev).
+    GOOGLE_CLIENT_ID: z.string().min(1),
+    GOOGLE_CLIENT_SECRET: z.string().min(1),
+    // Resend (transactional email — Phase 2 magic-link delivery). In
+    // sandbox mode (no verified sending domain yet) Resend only delivers to
+    // the account owner's own verified address — see .env.example.
+    RESEND_API_KEY: z.string().min(1),
+    EMAIL_FROM: z.string().min(1).default('CanidKnot <onboarding@resend.dev>'),
+    // SMS ("Continue with Mobile" OTP). No vendor is wired in yet — see
+    // @/lib/sms. Optional/unset today; "console" (or unset) logs codes to
+    // the server console in development and is refused outright in
+    // production until a real value + implementation exist.
+    SMS_PROVIDER: z.string().min(1).optional(),
     // @polsia:slot env_vars_server end
   },
 
@@ -41,7 +60,12 @@ export const env = createEnv({
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     // @polsia:slot env_runtime start
-    // Modules append runtime-env entries here at install time.
+    SESSION_SECRET: process.env.SESSION_SECRET,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+    SMS_PROVIDER: process.env.SMS_PROVIDER,
     // @polsia:slot env_runtime end
   },
   emptyStringAsUndefined: true,

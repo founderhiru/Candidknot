@@ -15,6 +15,16 @@ model DogProfile {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  // Nullable by design (Phase 2): the 12 existing demo profiles have no
+  // real owner and are NOT force-assigned to one. They stay ownerId = null
+  // and are treated as system/demo profiles — still visible in the public
+  // Discover experience, just not editable via any owner-only route (once
+  // those routes exist). onDelete: SetNull so deleting a user never
+  // deletes/orphans-breaks a profile; it just falls back to system/demo.
+  ownerId    String?
+  owner      User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
   @@index([breed])
   @@index([city])
+  @@index([ownerId])
 }
