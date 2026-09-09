@@ -2,6 +2,7 @@
 'use client';
 
 import { Check, MapPin, PawPrint, RefreshCw, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,16 @@ function FilterControls({ facets, filters, onChange, idPrefix }: FilterControlsP
   const minRadius = radiusOptions[0] ?? 5;
   const maxRadius = radiusOptions[radiusOptions.length - 1] ?? 100;
 
+  // The slider's own drag position is tracked locally so the thumb and the
+  // "{N} km" label respond immediately while dragging. `filters.radiusKm`
+  // (and the discovery query it drives) only updates on commit — i.e. once
+  // per drag gesture or arrow-key press, not on every pointer-move tick.
+  const [radiusDisplay, setRadiusDisplay] = useState(filters.radiusKm);
+
+  useEffect(() => {
+    setRadiusDisplay(filters.radiusKm);
+  }, [filters.radiusKm]);
+
   return (
     <div className="space-y-7">
       <div className="space-y-2">
@@ -112,16 +123,18 @@ function FilterControls({ facets, filters, onChange, idPrefix }: FilterControlsP
           <label htmlFor={`${idPrefix}-radius`} className="text-sm font-semibold text-foreground">
             Radius
           </label>
-          <span className="font-mono text-sm font-semibold text-brand-700">
-            {filters.radiusKm} km
-          </span>
+          <span className="font-mono text-sm font-semibold text-brand-700">{radiusDisplay} km</span>
         </div>
         <Slider
           id={`${idPrefix}-radius`}
           min={minRadius}
           max={maxRadius}
           step={5}
-          value={[Math.min(Math.max(filters.radiusKm, minRadius), maxRadius)]}
+          value={[Math.min(Math.max(radiusDisplay, minRadius), maxRadius)]}
+          onValueChange={(value) => {
+            const nextRadius = value[0];
+            if (typeof nextRadius === 'number') setRadiusDisplay(nextRadius);
+          }}
           onValueCommit={(value) => {
             const nextRadius = value[0];
             if (typeof nextRadius === 'number') onChange({ ...filters, radiusKm: nextRadius });
@@ -163,54 +176,60 @@ function initials(name: string): string {
 
 function ProfileCard({ profile }: { profile: DogProfileItemType }) {
   return (
-    <Card className="group overflow-hidden border-border/80 bg-card/90 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg">
-      <CardContent className="p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex size-14 shrink-0 items-center justify-center rounded-[1.25rem] bg-brand-100 font-display text-2xl font-semibold text-brand-800 transition-transform duration-300 group-hover:rotate-[-4deg]">
-              {initials(profile.name)}
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-display text-2xl font-semibold tracking-tight">
-                  {profile.name}
-                </h2>
-                {profile.isVerified && (
-                  <Badge className="gap-1 rounded-full bg-brand-100 text-brand-800 hover:bg-brand-100">
-                    <ShieldCheck className="size-3" /> Verified
-                  </Badge>
-                )}
+    <Link
+      href={`/discover/${profile.slug}`}
+      className="group block cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      aria-label={`View ${profile.name}’s profile`}
+    >
+      <Card className="overflow-hidden border-border/80 bg-card/90 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:border-brand-300 group-hover:shadow-lg">
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-[1.25rem] bg-brand-100 font-display text-2xl font-semibold text-brand-800 transition-transform duration-300 group-hover:rotate-[-4deg]">
+                {initials(profile.name)}
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {profile.breed} · {profile.ageYears} {profile.ageYears === 1 ? 'year' : 'years'}
-              </p>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-display text-2xl font-semibold tracking-tight">
+                    {profile.name}
+                  </h2>
+                  {profile.isVerified && (
+                    <Badge className="gap-1 rounded-full bg-brand-100 text-brand-800 hover:bg-brand-100">
+                      <ShieldCheck className="size-3" /> Verified
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {profile.breed} · {profile.ageYears} {profile.ageYears === 1 ? 'year' : 'years'}
+                </p>
+              </div>
+            </div>
+            <PawPrint className="size-5 shrink-0 text-brand-300 transition-colors group-hover:text-brand-600" />
+          </div>
+
+          <div className="mt-6 grid gap-2 text-sm sm:grid-cols-2">
+            <div className="flex items-center gap-2 rounded-lg bg-muted/70 px-3 py-2.5 text-muted-foreground">
+              <MapPin className="size-4 shrink-0 text-brand-600" />
+              <span>{profile.city}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-muted/70 px-3 py-2.5 text-muted-foreground">
+              <span className="flex size-4 items-center justify-center rounded-full border border-brand-500 text-[0.55rem] font-bold text-brand-700">
+                {profile.sex[0]}
+              </span>
+              <span>{profile.sex}</span>
             </div>
           </div>
-          <PawPrint className="size-5 shrink-0 text-brand-300 transition-colors group-hover:text-brand-600" />
-        </div>
 
-        <div className="mt-6 grid gap-2 text-sm sm:grid-cols-2">
-          <div className="flex items-center gap-2 rounded-lg bg-muted/70 px-3 py-2.5 text-muted-foreground">
-            <MapPin className="size-4 shrink-0 text-brand-600" />
-            <span>{profile.city}</span>
+          <p className="mt-5 min-h-12 text-sm leading-6 text-muted-foreground">{profile.bio}</p>
+          <div className="mt-5 flex items-center gap-2 border-t border-border pt-4 text-sm font-semibold text-brand-700">
+            <Check className="size-4" />
+            {profile.distanceKm === null
+              ? 'Choose a city for distance'
+              : `${profile.distanceKm.toFixed(1)} km away`}
           </div>
-          <div className="flex items-center gap-2 rounded-lg bg-muted/70 px-3 py-2.5 text-muted-foreground">
-            <span className="flex size-4 items-center justify-center rounded-full border border-brand-500 text-[0.55rem] font-bold text-brand-700">
-              {profile.sex[0]}
-            </span>
-            <span>{profile.sex}</span>
-          </div>
-        </div>
-
-        <p className="mt-5 min-h-12 text-sm leading-6 text-muted-foreground">{profile.bio}</p>
-        <div className="mt-5 flex items-center gap-2 border-t border-border pt-4 text-sm font-semibold text-brand-700">
-          <Check className="size-4" />
-          {profile.distanceKm === null
-            ? 'Choose a city for distance'
-            : `${profile.distanceKm.toFixed(1)} km away`}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -245,9 +264,10 @@ export function DogDiscovery() {
   const [data, setData] = useState<DogProfileListType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [_retryKey, setRetryKey] = useState(0);
+  const [retryKey, setRetryKey] = useState(0);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retryKey is an intentional manual re-trigger, never read inside the effect body — that's the point.
   useEffect(() => {
     let active = true;
     const params = new URLSearchParams({ radiusKm: String(filters.radiusKm) });
@@ -273,7 +293,7 @@ export function DogDiscovery() {
     return () => {
       active = false;
     };
-  }, [filters]);
+  }, [filters, retryKey]);
 
   const facets = data?.filters ?? DEFAULT_FACETS;
   const hasFilters = Boolean(filters.breed || filters.city);
