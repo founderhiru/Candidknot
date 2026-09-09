@@ -28,7 +28,7 @@ services:
   - type: web
     name: canidknot-web
     runtime: node
-    plan: starter # bump as real traffic requires
+    plan: free # bump as real traffic requires
     region: singapore
     branch: main
     buildCommand: npm ci --include=dev && npm run build
