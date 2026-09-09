@@ -1,0 +1,20 @@
+// @polsia:user-owned — app-owned discovery profile model.
+
+model DogProfile {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  name       String
+  breed      String
+  city       String
+  latitude   Float
+  longitude  Float
+  ageYears   Int
+  sex        String
+  bio        String
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([breed])
+  @@index([city])
+}
