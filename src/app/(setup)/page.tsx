@@ -127,13 +127,12 @@ export default function CanidKnotHome() {
             </p>
             <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <Button
-                asChild
                 size="lg"
-                className="h-12 rounded-full px-6 shadow-brand transition-transform duration-200 ease-out hover:-translate-y-0.5"
+                disabled
+                title="Contact channel coming soon"
+                className="h-12 rounded-full px-6 shadow-brand"
               >
-                <a href="mailto:canidknot@polsia.app?subject=Join%20the%20CanidKnot%20network">
-                  Join the early network <ArrowRight className="size-4" />
-                </a>
+                Join the early network <span className="text-xs font-normal">(coming soon)</span>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-12 rounded-full px-6">
                 <Link href="/discover">
@@ -351,10 +350,14 @@ export default function CanidKnotHome() {
               make informed decisions beyond the initial introduction.
             </p>
           </div>
-          <Button asChild size="lg" variant="outline" className="h-12 rounded-full px-6">
-            <a href="mailto:canidknot@polsia.app?subject=CanidKnot%20partnership%20enquiry">
-              Talk to CanidKnot <ArrowRight className="size-4" />
-            </a>
+          <Button
+            size="lg"
+            variant="outline"
+            disabled
+            title="Contact channel coming soon"
+            className="h-12 rounded-full px-6"
+          >
+            Talk to CanidKnot <span className="text-xs font-normal">(coming soon)</span>
           </Button>
         </div>
       </section>
@@ -373,11 +376,9 @@ export default function CanidKnotHome() {
             <p className="text-muted-foreground">
               CanidKnot is taking shape with owners, vets, and welfare-minded partners.
             </p>
-            <Button asChild variant="link" className="mt-4 h-auto p-0 text-foreground">
-              <a href="mailto:canidknot@polsia.app">
-                canidknot@polsia.app <ArrowRight className="size-4" />
-              </a>
-            </Button>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Contact CanidKnot — details coming soon.
+            </p>
           </div>
         </div>
       </section>

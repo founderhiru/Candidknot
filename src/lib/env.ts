@@ -15,10 +15,10 @@ import { z } from 'zod';
 export const env = createEnv({
   server: {
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-    // D24: Prisma is the framework-native DB client. DATABASE_URL is
-    // injected by Polsia at deploy time (D23). The actual Postgres is
-    // provisioned by a separate Polsia service; this module ships the
-    // client only.
+    // Prisma is the app's DB client. DATABASE_URL is injected by Render at
+    // deploy time when the web service is linked to a Render Postgres
+    // instance (see render.yaml). This module ships the client only — the
+    // actual Postgres instance is provisioned separately.
     DATABASE_URL: z.string().url(),
     // @polsia:slot env_vars_server start
     // Modules append additional server-side env vars here at install time.

@@ -31,12 +31,8 @@ export const navItems: NavItem[] = [
   { label: 'Features', href: '/#features', group: 'primary', order: 1 },
   { label: 'How it works', href: '/#how-it-works', group: 'primary', order: 2 },
   { label: 'Discover', href: '/discover', group: 'primary', order: 3 },
-  {
-    label: 'Join the network',
-    href: 'mailto:canidknot@polsia.app',
-    group: 'secondary',
-    order: 0,
-  },
+  // 'Join the network' (mailto) removed temporarily: no real contact address
+  // exists yet. Re-add once a real email/signup flow is wired up.
   { label: 'Welfare-first', href: '/#welfare', group: 'footer', order: 1 },
   {
     label: 'Veterinary partners',

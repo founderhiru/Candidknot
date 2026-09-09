@@ -91,7 +91,9 @@ describe('/llms.txt route', () => {
     });
 
     it('starts with the site name heading and description blockquote', () => {
-      expect(body.startsWith('# Polsia App\n\n> A Polsia-generated application.')).toBe(true);
+      expect(body.startsWith('# CanidKnot\n\n> Verified, health-first breeding connections')).toBe(
+        true,
+      );
     });
 
     it('renders the intro paragraph after the blockquote', () => {

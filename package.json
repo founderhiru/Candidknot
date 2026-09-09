@@ -1,8 +1,8 @@
 {
-  "name": "polsia-app-template",
-  "version": "0.3.12",
+  "name": "canidknot",
+  "version": "0.1.0",
   "private": true,
-  "description": "Polsia Next.js template with the shadcn UI baseline built in",
+  "description": "CanidKnot — verified, health-first breeding connections for India's responsible dog owners.",
   "engines": {
     "node": ">=20.18.1"
   },

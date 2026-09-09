@@ -1,0 +1,39 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# env files (never commit real secrets)
+.env
+.env.local
+.env.*.local
+
+# testing / coverage
+/coverage
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# vercel (not used, kept only to avoid accidental artifacts)
+.vercel
+
+# IDE
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# Polsia platform generated state — never committed; the Polsia agent
+# workflow this repo previously ran under is no longer in use, but keep
+# the entry in case any local tooling still writes here.
+.polsia/

@@ -29,9 +29,10 @@ import {
 // Builds the Permissions-Policy value from appCapabilities (relative path: @/ won't resolve here).
 import { buildPermissionsPolicy } from './src/lib/permissions-policy';
 
-// Polsia-platform image hosts (e.g. the R2 asset bucket), injected per-deploy as
-// POLSIA_IMAGE_REMOTE_HOSTS — comma-separated hostnames, Next wildcard syntax OK.
-const polsiaRemotePatterns = (process.env.POLSIA_IMAGE_REMOTE_HOSTS ?? '')
+// Deploy-injected image hosts (e.g. the Cloudflare R2 public asset bucket
+// hostname added in a later phase), set as IMAGE_REMOTE_HOSTS — comma-separated
+// hostnames, Next wildcard syntax OK. Empty until Phase 5 wires R2.
+const deployRemotePatterns = (process.env.IMAGE_REMOTE_HOSTS ?? '')
   .split(',')
   .map((hostname) => hostname.trim())
   .filter(Boolean)
@@ -55,10 +56,10 @@ const nextConfig: NextConfig = {
 
   // Image security.
   images: {
-    // Polsia-platform hosts (deploy-injected) + user hosts from next.user-config.ts;
+    // Deploy-injected hosts (IMAGE_REMOTE_HOSTS) + user hosts from next.user-config.ts;
     // modules append in the slot below.
     remotePatterns: [
-      ...polsiaRemotePatterns,
+      ...deployRemotePatterns,
       ...userRemotePatterns,
       // @polsia:slot images_remote_patterns start
       // Modules append remote image patterns here at install time. The
