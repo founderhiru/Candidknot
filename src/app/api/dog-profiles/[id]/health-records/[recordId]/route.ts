@@ -11,7 +11,7 @@ import { NextResponse } from 'next/server';
 import { HealthRecordWrite, toHealthRecordItem } from '@/lib/contracts/health-records';
 import { prisma } from '@/lib/db';
 import { loadOwnedDog, NotFoundError } from '@/lib/dog-ownership';
-import { deleteObject } from '@/lib/storage';
+import { deletePrivateObject } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +81,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     // Clean up storage objects for every attached document before the DB
     // cascade-deletes their rows.
-    await Promise.all(record.documents.map((doc) => deleteObject(doc.storageKey)));
+    await Promise.all(record.documents.map((doc) => deletePrivateObject(doc.storageKey)));
     await prisma.healthRecord.delete({ where: { id: recordId } });
 
     return NextResponse.json({ ok: true }, { status: 200 });

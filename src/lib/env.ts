@@ -49,6 +49,7 @@ export const env = createEnv({
     R2_ACCESS_KEY_ID: z.string().min(1),
     R2_SECRET_ACCESS_KEY: z.string().min(1),
     R2_BUCKET_NAME: z.string().min(1),
+    R2_PHOTOS_BUCKET_NAME: z.string().min(1),
     // Public hostname files are served from (no scheme) — also feeds
     // IMAGE_REMOTE_HOSTS for next/image (see next.config.ts).
     R2_PUBLIC_HOSTNAME: z.string().min(1),
@@ -87,6 +88,7 @@ export const env = createEnv({
     R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
     R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
     R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+    R2_PHOTOS_BUCKET_NAME: process.env.R2_PHOTOS_BUCKET_NAME,
     R2_PUBLIC_HOSTNAME: process.env.R2_PUBLIC_HOSTNAME,
     MOBILE_APP_SCHEME: process.env.MOBILE_APP_SCHEME,
     // @polsia:slot env_runtime end

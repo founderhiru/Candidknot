@@ -33,11 +33,11 @@ vi.mock('@/lib/db', () => ({
 }));
 
 const uploadPrivateObjectMock = vi.fn();
-const deleteObjectMock = vi.fn();
+const deletePrivateObjectMock = vi.fn();
 const getSignedDownloadUrlMock = vi.fn();
 vi.mock('@/lib/storage', () => ({
   uploadPrivateObject: uploadPrivateObjectMock,
-  deleteObject: deleteObjectMock,
+  deletePrivateObject: deletePrivateObjectMock,
   getSignedDownloadUrl: getSignedDownloadUrlMock,
   DOCUMENT_DOWNLOAD_TTL_SECONDS: 300,
 }));
@@ -68,7 +68,7 @@ beforeEach(() => {
   documentCreateMock.mockReset();
   documentDeleteMock.mockReset();
   uploadPrivateObjectMock.mockReset();
-  deleteObjectMock.mockReset();
+  deletePrivateObjectMock.mockReset();
   getSignedDownloadUrlMock.mockReset();
 });
 
@@ -180,7 +180,7 @@ describe('DELETE .../documents/[documentId]', () => {
     const res = await DELETE(new Request('http://test'), docParams('dog_1', 'hr_1', 'doc_1'));
 
     expect(res.status).toBe(404);
-    expect(deleteObjectMock).not.toHaveBeenCalled();
+    expect(deletePrivateObjectMock).not.toHaveBeenCalled();
     expect(documentDeleteMock).not.toHaveBeenCalled();
   });
 
@@ -199,7 +199,7 @@ describe('DELETE .../documents/[documentId]', () => {
     const res = await DELETE(new Request('http://test'), docParams('dog_1', 'hr_1', 'doc_1'));
 
     expect(res.status).toBe(200);
-    expect(deleteObjectMock).toHaveBeenCalledWith('dogs/dog_1/health-records/hr_1/x.pdf');
+    expect(deletePrivateObjectMock).toHaveBeenCalledWith('dogs/dog_1/health-records/hr_1/x.pdf');
     expect(documentDeleteMock).toHaveBeenCalledWith({ where: { id: 'doc_1' } });
   });
 });

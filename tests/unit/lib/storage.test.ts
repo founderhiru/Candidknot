@@ -17,6 +17,7 @@ vi.mock('@/lib/env', () => ({
     R2_ACCESS_KEY_ID: 'key',
     R2_SECRET_ACCESS_KEY: 'secret',
     R2_BUCKET_NAME: 'canidknot-uploads',
+      R2_PHOTOS_BUCKET_NAME: 'canidknot-photos',
     R2_PUBLIC_HOSTNAME: 'cdn.canidknot.test',
   },
 }));
@@ -59,7 +60,7 @@ describe('uploadPublicObject (dog photos)', () => {
 
     expect(putObjectCommandCtor).toHaveBeenCalledWith(
       expect.objectContaining({
-        Bucket: 'canidknot-uploads',
+        Bucket: 'canidknot-photos',
         Key: 'dogs/dog_1/photos/abc.jpg',
         ContentType: 'image/jpeg',
       }),
@@ -130,12 +131,12 @@ describe('getSignedDownloadUrl', () => {
 describe('deleteObject', () => {
   it('sends a DeleteObjectCommand for the given key', async () => {
     sendMock.mockResolvedValue({});
-    const { deleteObject } = await import('@/lib/storage');
+    const { deletePublicObject } = await import('@/lib/storage');
 
-    await deleteObject('dogs/dog_1/photos/abc.jpg');
+    await deletePublicObject('dogs/dog_1/photos/abc.jpg');
 
     expect(deleteObjectCommandCtor).toHaveBeenCalledWith(
-      expect.objectContaining({ Bucket: 'canidknot-uploads', Key: 'dogs/dog_1/photos/abc.jpg' }),
+      expect.objectContaining({ Bucket: 'canidknot-photos', Key: 'dogs/dog_1/photos/abc.jpg' }),
     );
   });
 });

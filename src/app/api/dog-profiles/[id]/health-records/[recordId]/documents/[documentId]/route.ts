@@ -7,7 +7,7 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { loadOwnedDog, NotFoundError } from '@/lib/dog-ownership';
-import { deleteObject } from '@/lib/storage';
+import { deletePrivateObject } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +28,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
-    await deleteObject(document.storageKey);
+    await deletePrivateObject(document.storageKey);
     await prisma.healthDocument.delete({ where: { id: documentId } });
 
     return NextResponse.json({ ok: true }, { status: 200 });
