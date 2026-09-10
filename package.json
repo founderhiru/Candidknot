@@ -25,6 +25,7 @@
     "@aws-sdk/client-s3": "3.1129.0",
     "@aws-sdk/s3-request-presigner": "3.1129.0",
     "@hookform/resolvers": "5.4.0",
+    "@better-auth/expo": "^1.7.3",
     "@prisma/client": "6.19.3",
     "@radix-ui/react-accordion": "1.2.12",
     "@radix-ui/react-avatar": "1.1.11",
