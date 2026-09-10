@@ -1,0 +1,18 @@
+// @polsia:user-owned — Phase 4: dog photos. Each row is one uploaded photo
+// stored in S3-compatible object storage (see src/lib/storage.ts) — this
+// table only holds the pointer (storageKey) and the public url, never the
+// binary itself. `position` orders the gallery; position 0 is the cover
+// photo used on public Discover cards (Phase 5).
+
+model DogPhoto {
+  id         String     @id @default(cuid())
+  dogId      String
+  dog        DogProfile @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  storageKey String
+  url        String
+  position   Int        @default(0)
+  createdAt  DateTime   @default(now())
+
+  @@index([dogId])
+  @@map("dog_photo")
+}

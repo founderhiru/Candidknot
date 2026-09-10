@@ -1,7 +1,15 @@
 // @polsia:user-owned — public dog profile detail view.
 'use client';
 
-import { ArrowLeft, Check, MapPin, PawPrint, RefreshCw, ShieldCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  HeartPulse,
+  MapPin,
+  PawPrint,
+  RefreshCw,
+  ShieldCheck,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -132,9 +140,18 @@ export function DogProfileDetail({ slug }: { slug: string }) {
               <CardContent className="p-6 sm:p-8">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.25rem] bg-brand-100 font-display text-3xl font-semibold text-brand-800">
-                      {initials(state.profile.name)}
-                    </div>
+                    {state.profile.coverPhotoUrl ? (
+                      // biome-ignore lint/performance/noImgElement: owner-uploaded remote URL, not a build-time-known host set for next/image
+                      <img
+                        src={state.profile.coverPhotoUrl}
+                        alt=""
+                        className="size-16 shrink-0 rounded-[1.25rem] object-cover"
+                      />
+                    ) : (
+                      <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.25rem] bg-brand-100 font-display text-3xl font-semibold text-brand-800">
+                        {initials(state.profile.name)}
+                      </div>
+                    )}
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <h1 className="font-display text-3xl font-semibold tracking-tight">
@@ -143,6 +160,14 @@ export function DogProfileDetail({ slug }: { slug: string }) {
                         {state.profile.isVerified && (
                           <Badge className="gap-1 rounded-full bg-brand-100 text-brand-800 hover:bg-brand-100">
                             <ShieldCheck className="size-3" /> Verified
+                          </Badge>
+                        )}
+                        {state.profile.hasHealthRecords && (
+                          <Badge
+                            variant="outline"
+                            className="gap-1 rounded-full border-brand-300 text-brand-700"
+                          >
+                            <HeartPulse className="size-3" /> Health info on file
                           </Badge>
                         )}
                       </div>

@@ -24,6 +24,11 @@ model DogProfile {
   ownerId    String?
   owner      User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
+  // Phase 4 — see prisma/schema/dog-photo.prisma and health-record.prisma.
+  // Both empty by default; the 12 demo profiles simply have none of either.
+  photos        DogPhoto[]
+  healthRecords HealthRecord[]
+
   @@index([breed])
   @@index([city])
   @@index([ownerId])

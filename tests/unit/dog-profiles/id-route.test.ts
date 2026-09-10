@@ -1,30 +1,34 @@
 // @vitest-environment node
 //
-// Phase 3: GET/PATCH /api/dog-profiles/[id] must let an owner manage their
-// own dog, but reject User A reading or writing a dog owned by User B —
-// the core IDOR requirement for Phase 3.
-//
-// SECURITY CORRECTION: a dog that exists but belongs to someone else must
-// respond IDENTICALLY to a dog that doesn't exist at all — 404, same body
-// — never 401/403. The ownership check (requireResourceOwner) still runs
-// on every request; only the response is indistinguishable from not-found.
+// Phase 3/4: GET/PATCH /api/dog-profiles/[id] must let an owner manage
+// their own dog, but reject User A reading or writing a dog owned by User
+// B — the core IDOR requirement. Ownership itself (loadOwnedDog, including
+// the 404-not-401 security correction) is unit-tested directly in
+// tests/unit/lib/dog-ownership.test.ts; this file mocks that module at its
+// boundary and focuses on what the route does with its result — including
+// the Phase 4 addition of embedding photos + healthRecords in the response.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-class FakeAuthError extends Error {
-  readonly status = 401;
+class FakeNotFoundError extends Error {
+  readonly status = 404;
 }
-const requireResourceOwnerMock = vi.fn();
-vi.mock('@/lib/auth', () => ({
-  AuthError: FakeAuthError,
-  requireResourceOwner: requireResourceOwnerMock,
+const loadOwnedDogMock = vi.fn();
+vi.mock('@/lib/dog-ownership', () => ({
+  NotFoundError: FakeNotFoundError,
+  loadOwnedDog: loadOwnedDogMock,
 }));
 
-const findUniqueMock = vi.fn();
+const findManyDogPhotoMock = vi.fn();
+const findManyHealthRecordMock = vi.fn();
 const updateMock = vi.fn();
 vi.mock('@/lib/db', () => ({
-  prisma: { dogProfile: { findUnique: findUniqueMock, update: updateMock } },
+  prisma: {
+    dogPhoto: { findMany: findManyDogPhotoMock },
+    healthRecord: { findMany: findManyHealthRecordMock },
+    dogProfile: { update: updateMock },
+  },
 }));
 
 const USER_A = { id: 'user_a', email: 'a@example.com' };
@@ -50,65 +54,42 @@ function routeParams(id: string) {
 }
 
 beforeEach(() => {
-  requireResourceOwnerMock.mockReset();
-  findUniqueMock.mockReset();
+  loadOwnedDogMock.mockReset();
+  findManyDogPhotoMock.mockReset();
+  findManyHealthRecordMock.mockReset();
   updateMock.mockReset();
+  findManyDogPhotoMock.mockResolvedValue([]);
+  findManyHealthRecordMock.mockResolvedValue([]);
 });
 
 describe('GET /api/dog-profiles/[id]', () => {
-  it('returns 404 when the dog does not exist, before any ownership check', async () => {
-    findUniqueMock.mockResolvedValue(null);
-    const { GET } = await import('@/app/api/dog-profiles/[id]/route');
-
-    const res = await GET(
-      new Request('http://test/api/dog-profiles/missing'),
-      routeParams('missing'),
-    );
-
-    expect(res.status).toBe(404);
-    expect(requireResourceOwnerMock).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 (not 401/403) for User A reading User B's dog, while still performing the ownership check (IDOR)", async () => {
-    findUniqueMock.mockResolvedValue(DOG_OWNED_BY_A);
-    requireResourceOwnerMock.mockRejectedValue(
-      new FakeAuthError('Not authorized to access this resource'),
-    );
+  it('returns 404 when the dog does not exist or belongs to someone else (loadOwnedDog enforces this)', async () => {
+    loadOwnedDogMock.mockRejectedValue(new FakeNotFoundError('Dog profile not found'));
     const { GET } = await import('@/app/api/dog-profiles/[id]/route');
 
     const res = await GET(new Request('http://test/api/dog-profiles/dog_1'), routeParams('dog_1'));
 
     expect(res.status).toBe(404);
-    // The ownership check must still have actually run — this isn't a
-    // shortcut that skips the check, only a response-shape change.
-    expect(requireResourceOwnerMock).toHaveBeenCalledWith(USER_A.id);
+    expect(findManyDogPhotoMock).not.toHaveBeenCalled();
   });
 
-  it('responds identically (same status + body) for a missing dog and a dog owned by someone else', async () => {
-    const { GET } = await import('@/app/api/dog-profiles/[id]/route');
-
-    findUniqueMock.mockResolvedValue(null);
-    const notFoundRes = await GET(
-      new Request('http://test/api/dog-profiles/missing'),
-      routeParams('missing'),
-    );
-
-    findUniqueMock.mockResolvedValue(DOG_OWNED_BY_A);
-    requireResourceOwnerMock.mockRejectedValue(
-      new FakeAuthError('Not authorized to access this resource'),
-    );
-    const notOwnedRes = await GET(
-      new Request('http://test/api/dog-profiles/dog_1'),
-      routeParams('dog_1'),
-    );
-
-    expect(notOwnedRes.status).toBe(notFoundRes.status);
-    expect(await notOwnedRes.json()).toEqual(await notFoundRes.json());
-  });
-
-  it('allows the owner to read their own dog', async () => {
-    findUniqueMock.mockResolvedValue(DOG_OWNED_BY_A);
-    requireResourceOwnerMock.mockResolvedValue(USER_A);
+  it('allows the owner to read their own dog, embedding photos and healthRecords', async () => {
+    loadOwnedDogMock.mockResolvedValue(DOG_OWNED_BY_A);
+    findManyDogPhotoMock.mockResolvedValue([
+      { id: 'photo_1', url: 'https://cdn.test/a.jpg', position: 0 },
+    ]);
+    findManyHealthRecordMock.mockResolvedValue([
+      {
+        id: 'hr_1',
+        dogId: 'dog_1',
+        type: 'vaccination',
+        title: 'Rabies',
+        occurredOn: new Date('2026-01-15'),
+        vetName: null,
+        notes: null,
+        documents: [],
+      },
+    ]);
     const { GET } = await import('@/app/api/dog-profiles/[id]/route');
 
     const res = await GET(new Request('http://test/api/dog-profiles/dog_1'), routeParams('dog_1'));
@@ -117,6 +98,10 @@ describe('GET /api/dog-profiles/[id]', () => {
     const body = await res.json();
     expect(body.id).toBe('dog_1');
     expect(body.ownerId).toBe(USER_A.id);
+    expect(body.photos).toHaveLength(1);
+    expect(body.photos[0].id).toBe('photo_1');
+    expect(body.healthRecords).toHaveLength(1);
+    expect(body.healthRecords[0].occurredOn).toBe('2026-01-15');
   });
 });
 
@@ -130,32 +115,18 @@ describe('PATCH /api/dog-profiles/[id]', () => {
     });
   }
 
-  it('returns 404 for a nonexistent dog without leaking ownership info', async () => {
-    findUniqueMock.mockResolvedValue(null);
-    const { PATCH } = await import('@/app/api/dog-profiles/[id]/route');
-
-    const res = await PATCH(patchRequest(patchBody), routeParams('missing'));
-
-    expect(res.status).toBe(404);
-  });
-
-  it("returns 404 (not 401/403) for User A editing User B's dog, and never calls update", async () => {
-    findUniqueMock.mockResolvedValue(DOG_OWNED_BY_A);
-    requireResourceOwnerMock.mockRejectedValue(
-      new FakeAuthError('Not authorized to access this resource'),
-    );
+  it('returns 404 when the dog does not exist or belongs to someone else, and never calls update', async () => {
+    loadOwnedDogMock.mockRejectedValue(new FakeNotFoundError('Dog profile not found'));
     const { PATCH } = await import('@/app/api/dog-profiles/[id]/route');
 
     const res = await PATCH(patchRequest(patchBody), routeParams('dog_1'));
 
     expect(res.status).toBe(404);
-    expect(requireResourceOwnerMock).toHaveBeenCalledWith(USER_A.id);
     expect(updateMock).not.toHaveBeenCalled();
   });
 
   it('allows the owner to update their own dog', async () => {
-    findUniqueMock.mockResolvedValue(DOG_OWNED_BY_A);
-    requireResourceOwnerMock.mockResolvedValue(USER_A);
+    loadOwnedDogMock.mockResolvedValue(DOG_OWNED_BY_A);
     updateMock.mockResolvedValue({ ...DOG_OWNED_BY_A, name: 'Rex Updated' });
     const { PATCH } = await import('@/app/api/dog-profiles/[id]/route');
 
@@ -165,11 +136,12 @@ describe('PATCH /api/dog-profiles/[id]', () => {
     expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'dog_1' } }));
     const body = await res.json();
     expect(body.name).toBe('Rex Updated');
+    expect(body.photos).toEqual([]);
+    expect(body.healthRecords).toEqual([]);
   });
 
   it('ignores a client-supplied ownerId/slug in the update body', async () => {
-    findUniqueMock.mockResolvedValue(DOG_OWNED_BY_A);
-    requireResourceOwnerMock.mockResolvedValue(USER_A);
+    loadOwnedDogMock.mockResolvedValue(DOG_OWNED_BY_A);
     updateMock.mockResolvedValue(DOG_OWNED_BY_A);
     const { PATCH } = await import('@/app/api/dog-profiles/[id]/route');
 
