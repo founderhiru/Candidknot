@@ -17,7 +17,16 @@
         "backgroundColor": "#FBF8F3"
       }
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CanidKnot needs access to your photos so you can add pictures of your dog.",
+          "cameraPermission": "CanidKnot needs access to your camera so you can take a photo of your dog."
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": false
     }

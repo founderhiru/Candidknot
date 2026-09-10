@@ -88,4 +88,20 @@ describe("apiFetch", () => {
     });
     expect(result.count).toBe(3);
   });
+
+  it("does not force a JSON content-type when the body is FormData (multipart uploads)", async () => {
+    getStoredSessionCookieMock.mockResolvedValue("");
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({}), { status: 200 }),
+    );
+
+    const { apiFetch } = await import("@/lib/api-client");
+    const formData = new FormData();
+    formData.append("file", "not-a-real-file");
+    await apiFetch("/api/upload", { method: "POST", body: formData });
+
+    const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get("content-type")).toBeNull();
+  });
 });

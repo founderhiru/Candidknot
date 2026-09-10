@@ -59,7 +59,14 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { schema, skipAuth, ...init } = options ?? {};
   const headers = new Headers(init.headers);
-  headers.set("content-type", "application/json");
+  // Multipart uploads (dog photos, M2) pass a FormData body — fetch must set
+  // its own `multipart/form-data; boundary=...` content-type for that case,
+  // so only default to JSON when the body isn't FormData.
+  const isFormData =
+    typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (!isFormData) {
+    headers.set("content-type", "application/json");
+  }
 
   if (!skipAuth) {
     const cookie = await getStoredSessionCookie();
