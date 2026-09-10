@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "CanidKnot",
+    "slug": "canidknot",
+    "scheme": "canidknot",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.canidknot.app"
+    },
+    "android": {
+      "package": "com.canidknot.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FBF8F3"
+      }
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

@@ -31,6 +31,7 @@
 // no-dashboard-yet phase. Documented as a deferred decision, not
 // implemented automatically.
 import 'server-only';
+import { expo } from '@better-auth/expo';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { magicLink, phoneNumber } from 'better-auth/plugins';
@@ -44,6 +45,15 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
   secret: env.SESSION_SECRET,
   baseURL: env.NEXT_PUBLIC_APP_URL,
+
+  // Mobile (Phase mobile-M1): the Expo app is a second, non-web client of
+  // this SAME better-auth instance — no parallel auth system. Without this,
+  // better-auth's origin check rejects every request whose Origin header is
+  // the app's custom URL scheme instead of an http(s) origin, which is what
+  // the OAuth-callback deep link back into the Expo app uses.
+  // See @better-auth/expo's `expo()` plugin below for the matching half of
+  // this on the request-handling side.
+  trustedOrigins: [env.MOBILE_APP_SCHEME],
 
   // No password surface at all — Google, phone OTP, and email magic link
   // are the only sign-in methods.
@@ -97,6 +107,14 @@ export const auth = betterAuth({
   },
 
   plugins: [
+    // Mobile (Phase mobile-M1): rewrites the Origin header on requests coming
+    // from the Expo client so trustedOrigins (above) is checked correctly,
+    // and proxies the OAuth authorization redirect back through the app's
+    // custom scheme. Contributes no new sign-in method and does not touch
+    // Google/phone/magic-link config below — those three remain the only
+    // sign-in methods on every platform. See @better-auth/expo's README for
+    // the exact mechanism.
+    expo(),
     magicLink({
       expiresIn: 60 * 10, // 10 minutes
       sendMagicLink: async ({ email, url }) => {

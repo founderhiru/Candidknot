@@ -52,6 +52,12 @@ export const env = createEnv({
     // Public hostname files are served from (no scheme) — also feeds
     // IMAGE_REMOTE_HOSTS for next/image (see next.config.ts).
     R2_PUBLIC_HOSTNAME: z.string().min(1),
+    // Mobile (Phase mobile-M1). The Expo app's custom URL scheme, added to
+    // better-auth's trustedOrigins so requests/OAuth redirects originating
+    // from the app (Origin: "canidknot://") are accepted the same way an
+    // http(s) web origin is — see @/lib/auth. Must exactly match the
+    // "scheme" value in the Expo app's app.json.
+    MOBILE_APP_SCHEME: z.string().min(1).default('canidknot://'),
     // @polsia:slot env_vars_server end
   },
 
@@ -82,6 +88,7 @@ export const env = createEnv({
     R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
     R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
     R2_PUBLIC_HOSTNAME: process.env.R2_PUBLIC_HOSTNAME,
+    MOBILE_APP_SCHEME: process.env.MOBILE_APP_SCHEME,
     // @polsia:slot env_runtime end
   },
   emptyStringAsUndefined: true,
