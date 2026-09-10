@@ -14,6 +14,9 @@ export const DogDiscoveryQuery = z.object({
   breed: optionalQueryString,
   city: optionalQueryString,
   radiusKm: z.coerce.number().int().min(5).max(100).default(25),
+  // Phase 5 — filter to verified profiles only. Absent/anything other than
+  // "true" or "1" means false; there is no tri-state here.
+  verifiedOnly: z.preprocess((value) => value === 'true' || value === '1', z.boolean()),
 });
 
 export const DogProfileItem = z.object({
@@ -29,6 +32,12 @@ export const DogProfileItem = z.object({
   bio: z.string(),
   isVerified: z.boolean(),
   distanceKm: z.number().nonnegative().nullable(),
+  // Phase 5 — cover photo (position 0, if any) and whether ANY health
+  // records exist. Deliberately no record detail or document access here:
+  // this is the public, unauthenticated discovery endpoint. See
+  // src/lib/contracts/health-records.ts for the owner-only shape.
+  coverPhotoUrl: z.string().nullable(),
+  hasHealthRecords: z.boolean(),
 });
 
 export const DogProfileList = z.object({
@@ -73,7 +82,11 @@ export const DogProfileWrite = z.object({
 // loses that resolved default (and infers `T | undefined`) when the
 // schema flows through apiFetch's generic `ZodType<T>` parameter — every
 // server call site below supplies photos/healthRecords explicitly instead.
-export const OwnedDogProfileItem = DogProfileItem.omit({ distanceKm: true }).extend({
+export const OwnedDogProfileItem = DogProfileItem.omit({
+  distanceKm: true,
+  coverPhotoUrl: true,
+  hasHealthRecords: true,
+}).extend({
   ownerId: z.string().nullable(),
   photos: z.array(DogPhotoItem),
   healthRecords: z.array(HealthRecordItem),
