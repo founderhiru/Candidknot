@@ -2,6 +2,8 @@
 // Keep this module free of Prisma and server-only imports so the client island
 // and its route handler validate the same response shape.
 import { z } from 'zod';
+import { DogPhotoItem } from '@/lib/contracts/dog-photos';
+import { HealthRecordItem } from '@/lib/contracts/health-records';
 
 const optionalQueryString = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
@@ -64,8 +66,17 @@ export const DogProfileWrite = z.object({
 // column on the row) plus ownerId, so the client can show "yours" state.
 // Never used to derive ownership server-side; that always comes from
 // requireResourceOwner() against the DB row.
+//
+// Phase 4 adds photos + healthRecords — both loaded via the same
+// ownership-checked dog row in /api/dog-profiles/[id], never a separate
+// unauthenticated path. Deliberately no `.default([])` here: TypeScript
+// loses that resolved default (and infers `T | undefined`) when the
+// schema flows through apiFetch's generic `ZodType<T>` parameter — every
+// server call site below supplies photos/healthRecords explicitly instead.
 export const OwnedDogProfileItem = DogProfileItem.omit({ distanceKm: true }).extend({
   ownerId: z.string().nullable(),
+  photos: z.array(DogPhotoItem),
+  healthRecords: z.array(HealthRecordItem),
 });
 
 export const OwnedDogProfileList = z.object({

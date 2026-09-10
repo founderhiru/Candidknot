@@ -165,7 +165,9 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(created, { status: 201 });
+    // A brand-new dog has neither yet — supplied explicitly since
+    // OwnedDogProfileItem no longer defaults these (see its contract).
+    return NextResponse.json({ ...created, photos: [], healthRecords: [] }, { status: 201 });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

@@ -10,6 +10,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { DogHealthSection } from '@/components/custom/dog-health-section';
+import { DogPhotosSection } from '@/components/custom/dog-photos-section';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -25,7 +27,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch } from '@/lib/api-client';
 import { useSession } from '@/lib/auth-client';
+import type { DogPhotoItem } from '@/lib/contracts/dog-photos';
 import { DogProfileWrite, OwnedDogProfileItem } from '@/lib/contracts/dog-profiles';
+import type { HealthRecordItem } from '@/lib/contracts/health-records';
 import { applyServerErrors } from '@/lib/forms';
 
 const EMPTY_VALUES: DogProfileWrite = {
@@ -46,6 +50,8 @@ export function DogFormView({ dogId }: { dogId?: string }) {
   const { data: session, isPending: sessionPending } = useSession();
   const isEdit = Boolean(dogId);
   const [state, setState] = useState<LoadState>(isEdit ? 'loading' : 'ready');
+  const [photos, setPhotos] = useState<DogPhotoItem[]>([]);
+  const [healthRecords, setHealthRecords] = useState<HealthRecordItem[]>([]);
 
   const form = useForm<DogProfileWrite>({
     resolver: zodResolver(DogProfileWrite),
@@ -74,6 +80,8 @@ export function DogFormView({ dogId }: { dogId?: string }) {
           sex: dog.sex,
           bio: dog.bio,
         });
+        setPhotos(dog.photos);
+        setHealthRecords(dog.healthRecords);
         setState('ready');
       })
       .catch((err: Error) => {
@@ -267,6 +275,13 @@ export function DogFormView({ dogId }: { dogId?: string }) {
           </Form>
         </CardContent>
       </Card>
+
+      {isEdit && dogId && (
+        <>
+          <DogPhotosSection dogId={dogId} photos={photos} onChange={setPhotos} />
+          <DogHealthSection dogId={dogId} records={healthRecords} onChange={setHealthRecords} />
+        </>
+      )}
     </main>
   );
 }

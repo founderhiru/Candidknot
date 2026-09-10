@@ -41,6 +41,17 @@ export const env = createEnv({
     // the server console in development and is refused outright in
     // production until a real value + implementation exist.
     SMS_PROVIDER: z.string().min(1).optional(),
+    // Object storage (Phase 4 — photos + health passport documents).
+    // Cloudflare R2, via the S3-compatible API (@aws-sdk/client-s3) — the
+    // shape this repo already reserved for it (see .env.example). The R2
+    // endpoint is derived from R2_ACCOUNT_ID; see src/lib/storage.ts.
+    R2_ACCOUNT_ID: z.string().min(1),
+    R2_ACCESS_KEY_ID: z.string().min(1),
+    R2_SECRET_ACCESS_KEY: z.string().min(1),
+    R2_BUCKET_NAME: z.string().min(1),
+    // Public hostname files are served from (no scheme) — also feeds
+    // IMAGE_REMOTE_HOSTS for next/image (see next.config.ts).
+    R2_PUBLIC_HOSTNAME: z.string().min(1),
     // @polsia:slot env_vars_server end
   },
 
@@ -66,6 +77,11 @@ export const env = createEnv({
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
     SMS_PROVIDER: process.env.SMS_PROVIDER,
+    R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID,
+    R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
+    R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
+    R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+    R2_PUBLIC_HOSTNAME: process.env.R2_PUBLIC_HOSTNAME,
     // @polsia:slot env_runtime end
   },
   emptyStringAsUndefined: true,
