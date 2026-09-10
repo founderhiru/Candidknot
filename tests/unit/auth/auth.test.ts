@@ -21,6 +21,7 @@ vi.mock('@/lib/env', () => ({
     RESEND_API_KEY: 'test-resend-key',
     EMAIL_FROM: 'CanidKnot <test@example.com>',
     NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
+    MOBILE_APP_SCHEME: 'canidknot://',
   },
 }));
 vi.mock('@/lib/email', () => ({ sendAuthEmail: vi.fn() }));
@@ -41,9 +42,32 @@ vi.mock('better-auth/plugins', () => ({
   magicLink: vi.fn((options: unknown) => options),
   phoneNumber: vi.fn((options: unknown) => options),
 }));
+// Mobile (Phase mobile-M1): @/lib/auth now also registers @better-auth/expo's
+// server plugin (see auth.ts) — mocked the same way as the other plugins
+// above so this suite keeps testing only our own wrapper functions, not
+// better-auth's or @better-auth/expo's internals.
+vi.mock('@better-auth/expo', () => ({
+  expo: vi.fn(() => ({ id: 'expo' })),
+}));
 
 const FOUNDER_USER = { id: 'user_1', email: 'founder@example.com', isFounder: true };
 const REGULAR_USER = { id: 'user_2', email: 'regular@example.com', isFounder: false };
+
+describe('mobile auth bridge (Phase mobile-M1)', () => {
+  it('registers the expo() server plugin and trusts the mobile app scheme as an origin', async () => {
+    const { betterAuth } = await import('better-auth');
+    await import('@/lib/auth');
+    const config = vi.mocked(betterAuth).mock.calls[0]?.[0] as {
+      trustedOrigins?: string[];
+      plugins?: unknown[];
+    };
+    expect(config.trustedOrigins).toContain('canidknot://');
+    // expo() is mocked to return a recognizable marker — presence in the
+    // plugins array is what we're confirming, i.e. that auth.ts actually
+    // wired it in (not testing @better-auth/expo's own internals).
+    expect(config.plugins).toContainEqual({ id: 'expo' });
+  });
+});
 
 describe('getAuthenticatedUser / requireAuthenticatedUser', () => {
   beforeEach(() => {
