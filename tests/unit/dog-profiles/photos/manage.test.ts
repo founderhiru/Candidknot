@@ -19,9 +19,9 @@ vi.mock('@/lib/db', () => ({
   prisma: { dogPhoto: { findUnique: findUniqueMock, delete: deleteMock, update: updateMock } },
 }));
 
-const deleteObjectMock = vi.fn();
+const deletePublicObjectMock = vi.fn();
 vi.mock('@/lib/storage', () => ({
-  deleteObject: deleteObjectMock,
+  deletePublicObject: deletePublicObjectMock,
 }));
 
 function routeParams(id: string, photoId: string) {
@@ -33,7 +33,7 @@ beforeEach(() => {
   findUniqueMock.mockReset();
   deleteMock.mockReset();
   updateMock.mockReset();
-  deleteObjectMock.mockReset();
+  deletePublicObjectMock.mockReset();
 });
 
 describe('DELETE /api/dog-profiles/[id]/photos/[photoId]', () => {
@@ -55,7 +55,7 @@ describe('DELETE /api/dog-profiles/[id]/photos/[photoId]', () => {
     const res = await DELETE(new Request('http://test'), routeParams('dog_1', 'photo_1'));
 
     expect(res.status).toBe(404);
-    expect(deleteObjectMock).not.toHaveBeenCalled();
+    expect(deletePublicObjectMock).not.toHaveBeenCalled();
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
@@ -71,7 +71,7 @@ describe('DELETE /api/dog-profiles/[id]/photos/[photoId]', () => {
     const res = await DELETE(new Request('http://test'), routeParams('dog_1', 'photo_1'));
 
     expect(res.status).toBe(200);
-    expect(deleteObjectMock).toHaveBeenCalledWith('dogs/dog_1/photos/x.jpg');
+    expect(deletePublicObjectMock).toHaveBeenCalledWith('dogs/dog_1/photos/x.jpg');
     expect(deleteMock).toHaveBeenCalledWith({ where: { id: 'photo_1' } });
   });
 });

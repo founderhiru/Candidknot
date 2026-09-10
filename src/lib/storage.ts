@@ -52,10 +52,15 @@ function publicUrlFor(storageKey: string): string {
   return `https://${env.R2_PUBLIC_HOSTNAME}/${storageKey}`;
 }
 
-async function putObject(storageKey: string, body: Buffer, contentType: string): Promise<void> {
+async function putObject(
+  bucket: string,
+  storageKey: string,
+  body: Uint8Array | Buffer,
+  contentType: string,
+): Promise<void> {
   await client.send(
     new PutObjectCommand({
-      Bucket: env.R2_BUCKET_NAME,
+      Bucket: bucket,
       Key: storageKey,
       Body: body,
       ContentType: contentType,
@@ -69,7 +74,7 @@ export async function uploadPublicObject(
   body: Buffer,
   contentType: string,
 ): Promise<{ storageKey: string; url: string }> {
-  await putObject(storageKey, body, contentType);
+  await putObject(env.R2_PHOTOS_BUCKET_NAME, storageKey, body, contentType);
   return { storageKey, url: publicUrlFor(storageKey) };
 }
 
@@ -83,7 +88,7 @@ export async function uploadPrivateObject(
   body: Buffer,
   contentType: string,
 ): Promise<{ storageKey: string }> {
-  await putObject(storageKey, body, contentType);
+  await putObject(env.R2_BUCKET_NAME, storageKey, body, contentType);
   return { storageKey };
 }
 
@@ -103,6 +108,20 @@ export async function getSignedDownloadUrl(
 }
 
 /** Deletes a file from the bucket. Safe to call on an already-gone key. */
-export async function deleteObject(storageKey: string): Promise<void> {
-  await client.send(new DeleteObjectCommand({ Bucket: env.R2_BUCKET_NAME, Key: storageKey }));
+export async function deletePublicObject(storageKey: string): Promise<void> {
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: env.R2_PHOTOS_BUCKET_NAME,
+      Key: storageKey,
+    }),
+  );
+}
+
+export async function deletePrivateObject(storageKey: string): Promise<void> {
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: env.R2_BUCKET_NAME,
+      Key: storageKey,
+    }),
+  );
 }
