@@ -20,7 +20,12 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    const payload = OwnedDogProfileList.parse({ items: profiles });
+    // This summary list intentionally doesn't fetch photos/healthRecords
+    // (the list view only shows name/breed/city/age) — supplied as empty
+    // arrays explicitly since OwnedDogProfileItem no longer defaults them.
+    const payload = OwnedDogProfileList.parse({
+      items: profiles.map((profile) => ({ ...profile, photos: [], healthRecords: [] })),
+    });
     return NextResponse.json(payload, { status: 200 });
   } catch (err) {
     if (err instanceof AuthError) {

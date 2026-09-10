@@ -1,53 +1,51 @@
 // @polsia:user-owned — Phase 3: owner-only view/edit of a single dog
-// profile by id. The dog is always loaded from the DB first, then
-// requireResourceOwner() checks the loaded row's ownerId against the
-// server-derived session user — the :id in the URL never determines
-// ownership by itself, so an attacker cannot IDOR their way into another
-// owner's dog by guessing/changing the id.
+// profile by id. Ownership is enforced by @/lib/dog-ownership's
+// loadOwnedDog(), which loads the row, runs requireResourceOwner(), and
+// throws NotFoundError (mapped to 404 below) for BOTH a missing id and an
+// id owned by someone else — the two are indistinguishable to the caller,
+// per the Phase 3 security correction. requireResourceOwner still runs on
+// every request; only the response is unified with not-found.
 //
-// SECURITY CORRECTION (post-approval): the ownership check still runs on
-// every request (requireResourceOwner is never skipped), but its failure
-// is surfaced as the SAME 404 response used for a nonexistent id — not a
-// 401/403 — so a caller who is not the owner (including an unauthenticated
-// one) cannot distinguish "this id doesn't exist" from "this id exists but
-// isn't yours". Both cases return the identical body and status.
+// Phase 4 extends the GET response with photos + healthRecords, both
+// loaded via the same ownership-checked dog row — no separate auth path.
 import 'server-only';
 
 import { NextResponse } from 'next/server';
-import { AuthError, requireResourceOwner } from '@/lib/auth';
 import { DogProfileWrite, OwnedDogProfileItem } from '@/lib/contracts/dog-profiles';
+import { toHealthRecordItem } from '@/lib/contracts/health-records';
 import { prisma } from '@/lib/db';
+import { loadOwnedDog, NotFoundError } from '@/lib/dog-ownership';
 
 export const dynamic = 'force-dynamic';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// Single not-found response used for BOTH a missing id and an id owned by
-// someone else — same status, same body, so the two are indistinguishable
-// to the caller.
-function notFoundResponse() {
-  return NextResponse.json({ error: 'Dog profile not found' }, { status: 404 });
-}
-
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const dog = await prisma.dogProfile.findUnique({ where: { id } });
-    if (!dog) {
-      return notFoundResponse();
-    }
+    const dog = await loadOwnedDog(id);
 
-    try {
-      await requireResourceOwner(dog.ownerId);
-    } catch (err) {
-      if (err instanceof AuthError) {
-        return notFoundResponse();
-      }
-      throw err;
-    }
+    const [photos, healthRecords] = await Promise.all([
+      prisma.dogPhoto.findMany({ where: { dogId: id }, orderBy: { position: 'asc' } }),
+      prisma.healthRecord.findMany({
+        where: { dogId: id },
+        include: { documents: true },
+        orderBy: { occurredOn: 'desc' },
+      }),
+    ]);
 
-    return NextResponse.json(OwnedDogProfileItem.parse(dog), { status: 200 });
-  } catch {
+    return NextResponse.json(
+      OwnedDogProfileItem.parse({
+        ...dog,
+        photos: photos.map((photo) => ({ id: photo.id, url: photo.url, position: photo.position })),
+        healthRecords: healthRecords.map(toHealthRecordItem),
+      }),
+      { status: 200 },
+    );
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     return NextResponse.json({ error: 'Unable to load dog profile' }, { status: 500 });
   }
 }
@@ -55,19 +53,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const dog = await prisma.dogProfile.findUnique({ where: { id } });
-    if (!dog) {
-      return notFoundResponse();
-    }
-
-    try {
-      await requireResourceOwner(dog.ownerId);
-    } catch (err) {
-      if (err instanceof AuthError) {
-        return notFoundResponse();
-      }
-      throw err;
-    }
+    await loadOwnedDog(id);
 
     const parsed = DogProfileWrite.safeParse(await request.json());
     if (!parsed.success) {
@@ -90,8 +76,27 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       data: parsed.data,
     });
 
-    return NextResponse.json(OwnedDogProfileItem.parse(updated), { status: 200 });
-  } catch {
+    const [photos, healthRecords] = await Promise.all([
+      prisma.dogPhoto.findMany({ where: { dogId: id }, orderBy: { position: 'asc' } }),
+      prisma.healthRecord.findMany({
+        where: { dogId: id },
+        include: { documents: true },
+        orderBy: { occurredOn: 'desc' },
+      }),
+    ]);
+
+    return NextResponse.json(
+      OwnedDogProfileItem.parse({
+        ...updated,
+        photos: photos.map((photo) => ({ id: photo.id, url: photo.url, position: photo.position })),
+        healthRecords: healthRecords.map(toHealthRecordItem),
+      }),
+      { status: 200 },
+    );
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     return NextResponse.json({ error: 'Unable to update dog profile' }, { status: 500 });
   }
 }

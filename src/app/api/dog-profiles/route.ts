@@ -1,7 +1,8 @@
-// @polsia:user-owned — public dog discovery endpoint (GET, unchanged from
-// Phase 2) + Phase 3 authenticated dog creation (POST). POST requires a
-// session and always derives ownerId from that session, never from the
-// request body.
+// @polsia:user-owned — public dog discovery endpoint (GET) + Phase 3
+// authenticated dog creation (POST). POST requires a session and always
+// derives ownerId from that session, never from the request body.
+// Phase 5 adds coverPhotoUrl/hasHealthRecords (public-safe summaries only —
+// see DogProfileItem's contract comment) and a verifiedOnly filter to GET.
 import 'server-only';
 
 import { NextResponse } from 'next/server';
@@ -75,9 +76,17 @@ export async function GET(request: Request) {
   try {
     const cityCenter = findCityCenter(parsed.data.city);
     const profiles = await prisma.dogProfile.findMany({
-      where: parsed.data.breed
-        ? { breed: { equals: parsed.data.breed, mode: 'insensitive' } }
-        : undefined,
+      where: {
+        ...(parsed.data.breed ? { breed: { equals: parsed.data.breed, mode: 'insensitive' } } : {}),
+        ...(parsed.data.verifiedOnly ? { isVerified: true } : {}),
+      },
+      include: {
+        // Cover photo only (position 0) — never the full gallery on the
+        // public endpoint. hasHealthRecords is a count, never the records
+        // themselves; see DogProfileItem's comment for why.
+        photos: { where: { position: 0 }, take: 1, select: { url: true } },
+        _count: { select: { healthRecords: true } },
+      },
     });
 
     const profilesWithDistance = profiles.map((profile) => ({
@@ -92,6 +101,8 @@ export async function GET(request: Request) {
       sex: profile.sex,
       bio: profile.bio,
       isVerified: profile.isVerified,
+      coverPhotoUrl: profile.photos[0]?.url ?? null,
+      hasHealthRecords: profile._count.healthRecords > 0,
       distanceKm: cityCenter
         ? Math.round(
             haversineDistanceKm(cityCenter, {
@@ -165,7 +176,9 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(created, { status: 201 });
+    // A brand-new dog has neither yet — supplied explicitly since
+    // OwnedDogProfileItem no longer defaults these (see its contract).
+    return NextResponse.json({ ...created, photos: [], healthRecords: [] }, { status: 201 });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

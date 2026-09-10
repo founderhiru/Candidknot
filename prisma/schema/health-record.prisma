@@ -1,0 +1,49 @@
+// @polsia:user-owned — Phase 4: health passport. HealthRecord is a
+// structured entry (vaccination, vet visit, or other) an owner logs for
+// their dog; HealthDocument is an uploaded certificate/scan attached to
+// one record. Documents are PRIVATE objects in S3-compatible storage (see
+// src/lib/storage.ts) — only storageKey is persisted, never a permanent
+// url; reading one requires an authenticated, ownership-checked request
+// that generates a short-lived signed URL on demand. Both models are
+// owner-only in every API route that touches them; nothing here is
+// exposed on the public Discover endpoints in this phase (Phase 5 exposes
+// at most a boolean "has health records on file").
+
+model HealthRecord {
+  id         String           @id @default(cuid())
+  dogId      String
+  dog        DogProfile       @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  // Free-form but constrained at the API/contract layer to a known set
+  // (vaccination | vetVisit | other) — kept as a plain string column so a
+  // new type can be added without a migration, same tradeoff already made
+  // for DogProfile.sex in Phase 3.
+  type       String
+  title      String
+  occurredOn DateTime
+  vetName    String?
+  notes      String?
+  documents  HealthDocument[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([dogId])
+  @@map("health_record")
+}
+
+model HealthDocument {
+  id             String       @id @default(cuid())
+  healthRecordId String
+  healthRecord   HealthRecord @relation(fields: [healthRecordId], references: [id], onDelete: Cascade)
+  // Deliberately NO url column: these are private objects (see
+  // src/lib/storage.ts). Only the storageKey is persisted; readers must go
+  // through the ownership-checked download route to get a short-lived
+  // signed URL, generated fresh on each request and never stored.
+  storageKey     String
+  fileName       String
+  mimeType       String
+  sizeBytes      Int
+  createdAt      DateTime     @default(now())
+
+  @@index([healthRecordId])
+  @@map("health_document")
+}

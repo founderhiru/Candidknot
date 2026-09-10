@@ -1,7 +1,15 @@
 // @polsia:user-owned — interactive public dog discovery island.
 'use client';
 
-import { Check, MapPin, PawPrint, RefreshCw, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import {
+  Check,
+  HeartPulse,
+  MapPin,
+  PawPrint,
+  RefreshCw,
+  ShieldCheck,
+  SlidersHorizontal,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +32,7 @@ import {
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { apiFetch } from '@/lib/api-client';
 import {
   type DogProfileItem as DogProfileItemType,
@@ -35,6 +44,7 @@ type FilterValues = {
   breed: string;
   city: string;
   radiusKm: number;
+  verifiedOnly: boolean;
 };
 
 type FilterControlsProps = {
@@ -150,15 +160,28 @@ function FilterControls({ facets, filters, onChange, idPrefix }: FilterControlsP
         </p>
       </div>
 
-      {(filters.breed || filters.city) && (
+      <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/70 px-3 py-2.5">
+        <label htmlFor={`${idPrefix}-verified`} className="text-sm font-semibold text-foreground">
+          Verified profiles only
+        </label>
+        <Switch
+          id={`${idPrefix}-verified`}
+          checked={filters.verifiedOnly}
+          onCheckedChange={(checked) => onChange({ ...filters, verifiedOnly: checked })}
+        />
+      </div>
+
+      {(filters.breed || filters.city || filters.verifiedOnly) && (
         <Button
           type="button"
           variant="ghost"
           size="sm"
           className="px-0 text-brand-700 hover:bg-transparent hover:text-brand-800"
-          onClick={() => onChange({ breed: '', city: '', radiusKm: filters.radiusKm })}
+          onClick={() =>
+            onChange({ breed: '', city: '', radiusKm: filters.radiusKm, verifiedOnly: false })
+          }
         >
-          Clear breed and city
+          Clear filters
         </Button>
       )}
     </div>
@@ -185,9 +208,18 @@ function ProfileCard({ profile }: { profile: DogProfileItemType }) {
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex size-14 shrink-0 items-center justify-center rounded-[1.25rem] bg-brand-100 font-display text-2xl font-semibold text-brand-800 transition-transform duration-300 group-hover:rotate-[-4deg]">
-                {initials(profile.name)}
-              </div>
+              {profile.coverPhotoUrl ? (
+                // biome-ignore lint/performance/noImgElement: owner-uploaded remote URL, not a build-time-known host set for next/image
+                <img
+                  src={profile.coverPhotoUrl}
+                  alt=""
+                  className="size-14 shrink-0 rounded-[1.25rem] object-cover transition-transform duration-300 group-hover:rotate-[-4deg]"
+                />
+              ) : (
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-[1.25rem] bg-brand-100 font-display text-2xl font-semibold text-brand-800 transition-transform duration-300 group-hover:rotate-[-4deg]">
+                  {initials(profile.name)}
+                </div>
+              )}
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="font-display text-2xl font-semibold tracking-tight">
@@ -196,6 +228,14 @@ function ProfileCard({ profile }: { profile: DogProfileItemType }) {
                   {profile.isVerified && (
                     <Badge className="gap-1 rounded-full bg-brand-100 text-brand-800 hover:bg-brand-100">
                       <ShieldCheck className="size-3" /> Verified
+                    </Badge>
+                  )}
+                  {profile.hasHealthRecords && (
+                    <Badge
+                      variant="outline"
+                      className="gap-1 rounded-full border-brand-300 text-brand-700"
+                    >
+                      <HeartPulse className="size-3" /> Health info on file
                     </Badge>
                   )}
                 </div>
@@ -260,6 +300,7 @@ export function DogDiscovery() {
     breed: '',
     city: '',
     radiusKm: 25,
+    verifiedOnly: false,
   });
   const [data, setData] = useState<DogProfileListType | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -273,6 +314,7 @@ export function DogDiscovery() {
     const params = new URLSearchParams({ radiusKm: String(filters.radiusKm) });
     if (filters.breed) params.set('breed', filters.breed);
     if (filters.city) params.set('city', filters.city);
+    if (filters.verifiedOnly) params.set('verifiedOnly', 'true');
 
     setIsLoading(true);
     setError(null);
@@ -296,7 +338,7 @@ export function DogDiscovery() {
   }, [filters, retryKey]);
 
   const facets = data?.filters ?? DEFAULT_FACETS;
-  const hasFilters = Boolean(filters.breed || filters.city);
+  const hasFilters = Boolean(filters.breed || filters.city || filters.verifiedOnly);
 
   return (
     <main className="min-h-screen overflow-hidden bg-background">
@@ -432,7 +474,9 @@ export function DogDiscovery() {
                     type="button"
                     variant="outline"
                     className="mt-6"
-                    onClick={() => setFilters({ breed: '', city: '', radiusKm: 50 })}
+                    onClick={() =>
+                      setFilters({ breed: '', city: '', radiusKm: 50, verifiedOnly: false })
+                    }
                   >
                     Broaden the search
                   </Button>
