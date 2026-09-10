@@ -4,7 +4,7 @@
 
 import { ChevronDown, Menu } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { ThemeToggle } from '@/components/custom/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -18,23 +18,48 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { signOut, useSession } from '@/lib/auth-client';
 import { type NavGroup, type NavItem, navItems } from '@/lib/nav';
 import { siteName } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
-// Session seam. The template ships with NO auth library, so `requiresAuth` items
-// are hidden by default. We deliberately do NOT statically import an auth module
-// here — a hard `@/lib/auth-client` import would break the build whenever auth is
-// absent. When an auth module is installed it provides `@/lib/auth-client`; wire
-// its session check in here so authenticated-only links appear, e.g.:
-//
-//   import { useSession } from '@/lib/auth-client';
-//   function useIsAuthenticated() {
-//     const { data } = useSession();
-//     return Boolean(data?.session);
-//   }
+// Session seam (Phase 2) — wired to the real better-auth client.
 function useIsAuthenticated(): boolean {
-  return false;
+  const { data } = useSession();
+  return Boolean(data?.session);
+}
+
+// Minimal sign-in/sign-out control. Not a nav.ts entry because sign-out is an
+// action (POST + client-side session refresh), not a navigable href.
+function AccountControl({ className }: { className?: string }) {
+  const { data, isPending } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  if (isPending) return null;
+
+  if (!data?.session) {
+    return (
+      <Button asChild variant="secondary" size="sm" className={className}>
+        <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Sign in</Link>
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={className}
+      onClick={() =>
+        signOut({
+          fetchOptions: { onSuccess: () => router.refresh() },
+        })
+      }
+    >
+      Sign out
+    </Button>
+  );
 }
 
 function visibleItems(group: NavGroup, isAuthenticated: boolean): NavItem[] {
@@ -239,6 +264,7 @@ export function SiteNav() {
                 </Link>
               </Button>
             ))}
+            <AccountControl />
           </div>
 
           {/* Always visible */}
@@ -325,6 +351,9 @@ export function SiteNav() {
                       ))}
                     </div>
                   )}
+                  <div className="mt-2 flex flex-col gap-1 border-t border-border pt-4">
+                    <AccountControl className="w-full justify-start" />
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>

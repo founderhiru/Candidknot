@@ -47,9 +47,23 @@ services:
         sync: false # set to the real public origin (e.g. https://canidknot.com) in the Render dashboard
       - key: SEO_INDEXABLE
         value: "true" # only on the real production service — leave unset/false on any preview/staging service
+      # Phase 2 — auth (Google + Mobile OTP + Email magic link via better-auth).
+      # Values are set directly in the Render dashboard, never committed.
+      - key: SESSION_SECRET
+        sync: false # generate with `openssl rand -base64 32`, unique per environment
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false # e.g. "CanidKnot <onboarding@resend.dev>" until a verified domain exists
+      # SMS_PROVIDER intentionally omitted — no vendor chosen yet (see
+      # src/lib/sms.ts). Phone sign-in refuses to run in production without
+      # it; add it here once a vendor is selected.
       # Reserved for later phases — added here as documentation, left unset
       # until the corresponding phase wires the reading code:
       #   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME,
       #   R2_PUBLIC_HOSTNAME, IMAGE_REMOTE_HOSTS (Phase 5)
-      #   SESSION_SECRET, OTP_PROVIDER_API_KEY (Phase 2)
-      #   EMAIL_PROVIDER_API_KEY, PUSH_PROVIDER_API_KEY (Phase 14)
+      #   PUSH_PROVIDER_API_KEY (Phase 14)

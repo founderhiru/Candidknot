@@ -1,0 +1,24 @@
+// @polsia:user-owned — Phase 3: owner profile.
+//
+// Extends the Better Auth `User` identity (prisma/schema/auth.prisma) with
+// app-specific profile fields that are NOT part of better-auth's core
+// schema (city, bio). One row per User, created by the user after sign-in
+// — never auto-created, never required to exist.
+//
+// Ownership: every read/write of this model in API routes is scoped to
+// requireAuthenticatedUser().id — never a client-supplied userId. See
+// src/app/api/owner-profile/route.ts.
+
+model OwnerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  city String
+  bio  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("owner_profile")
+}

@@ -36,7 +36,8 @@
         "src/app/**/route.ts",
         "src/app/layout.tsx",
         "src/lib/**",
-        "src/modules/**/server/**"
+        "src/modules/**/server/**",
+        "tests/**"
       ],
       "linter": { "rules": { "style": { "noRestrictedImports": "off" } } }
     }

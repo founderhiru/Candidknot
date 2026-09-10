@@ -33,6 +33,10 @@ export const navItems: NavItem[] = [
   { label: 'Discover', href: '/discover', group: 'primary', order: 3 },
   // 'Join the network' (mailto) removed temporarily: no real contact address
   // exists yet. Re-add once a real email/signup flow is wired up.
+  // Phase 3 — only rendered once a session exists (see requiresAuth handling
+  // in site-nav.tsx). Sit in 'secondary' alongside the sign-in/out control.
+  { label: 'Your dogs', href: '/dogs', group: 'secondary', requiresAuth: true, order: 1 },
+  { label: 'Your profile', href: '/profile', group: 'secondary', requiresAuth: true, order: 2 },
   { label: 'Welfare-first', href: '/#welfare', group: 'footer', order: 1 },
   {
     label: 'Veterinary partners',

@@ -1,9 +1,25 @@
-// @polsia:user-owned — public read-only dog discovery endpoint.
+// @polsia:user-owned — public dog discovery endpoint (GET, unchanged from
+// Phase 2) + Phase 3 authenticated dog creation (POST). POST requires a
+// session and always derives ownerId from that session, never from the
+// request body.
 import 'server-only';
 
 import { NextResponse } from 'next/server';
-import { DogDiscoveryQuery, DogProfileList } from '@/lib/contracts/dog-profiles';
+import { AuthError, requireAuthenticatedUser } from '@/lib/auth';
+import { DogDiscoveryQuery, DogProfileList, DogProfileWrite } from '@/lib/contracts/dog-profiles';
 import { prisma } from '@/lib/db';
+
+// Minimal URL-safe slug from the dog's name plus a short random suffix for
+// uniqueness — there is no per-owner slug editing UI, so this only needs to
+// avoid collisions, not be pretty.
+function slugify(name: string): string {
+  const base = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${base || 'dog'}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -117,5 +133,43 @@ export async function GET(request: Request) {
     return NextResponse.json(payload, { status: 200 });
   } catch {
     return NextResponse.json({ error: 'Unable to load dog profiles' }, { status: 500 });
+  }
+}
+
+// Phase 3 — create a dog profile owned by the authenticated user. ownerId
+// is ALWAYS the server-derived session user's id; nothing from the request
+// body ever reaches the ownerId column.
+export async function POST(request: Request) {
+  try {
+    const user = await requireAuthenticatedUser();
+
+    const parsed = DogProfileWrite.safeParse(await request.json());
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      const errors: Record<string, string> = {};
+      for (const [field, messages] of Object.entries(fieldErrors)) {
+        const message = messages?.[0];
+        if (message) {
+          errors[field] = message;
+        }
+      }
+      return NextResponse.json({ errors }, { status: 400 });
+    }
+
+    const created = await prisma.dogProfile.create({
+      data: {
+        ...parsed.data,
+        slug: slugify(parsed.data.name),
+        isVerified: false,
+        ownerId: user.id,
+      },
+    });
+
+    return NextResponse.json(created, { status: 201 });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    return NextResponse.json({ error: 'Unable to create dog profile' }, { status: 500 });
   }
 }

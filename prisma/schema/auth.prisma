@@ -1,0 +1,110 @@
+// @polsia:user-owned — identity/session models required by @/lib/auth
+// (better-auth, Prisma adapter). Field names/shapes follow better-auth's
+// documented core schema (User/Session/Account/Verification) — see
+// https://better-auth.com/docs/adapters/prisma — plus:
+//   - the isFounder additionalField configured in src/lib/auth.ts
+//   - phoneNumber/phoneNumberVerified, added by the phoneNumber plugin
+//     (https://better-auth.com/docs/plugins/phone-number#schema) — kept
+//     nullable and unique per that plugin's documented schema requirement
+//
+// NOTE ON VERIFICATION: hand-authored, not machine-generated. The sandbox
+// this was written in could not reach binaries.prisma.sh (network
+// allowlist), so `npx auth@latest generate` could not be run to
+// auto-produce/verify this file against the exact installed better-auth
+// version (1.7.3) and its magicLink/phoneNumber plugins. This is an
+// ENVIRONMENT VERIFICATION BLOCKER, not a design gap — re-run
+// `npx auth@latest generate --output prisma/schema/auth-check.prisma` in a
+// network-enabled environment (Render's build box or a local machine) and
+// diff against this file before the first real deploy, then delete the
+// throwaway output. Field names above were cross-checked against current
+// (2026) better-auth docs for the Prisma adapter, magicLink plugin (no
+// extra fields/tables — reuses Verification), and phoneNumber plugin
+// (adds exactly the two User columns below) — but doc text is not a
+// substitute for the CLI's actual DMMF-driven generation.
+
+model User {
+  id                  String       @id @default(cuid())
+  // No display name is required at sign-up — none of the three sign-in
+  // methods mandate one (Google supplies it when available; phone/email
+  // don't). Nullable so auto-created users never violate a NOT NULL
+  // constraint.
+  name                String?
+  email               String       @unique
+  emailVerified       Boolean      @default(false)
+  image               String?
+  // Added by the phoneNumber plugin. Nullable + unique per plugin docs —
+  // a user may exist with no phone number at all (signed up via Google or
+  // email), and no two users may share one once set.
+  phoneNumber         String?      @unique
+  phoneNumberVerified Boolean      @default(false)
+  // Founder/admin flag. Only ever set directly in the DB — `input: false`
+  // in src/lib/auth.ts's additionalFields makes it un-settable via any
+  // client-facing API. Read by requireAdmin() (@/lib/require-admin.ts).
+  isFounder           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  sessions            Session[]
+  accounts            Account[]
+  dogProfiles         DogProfile[]
+  // Phase 3 — see prisma/schema/owner-profile.prisma. Optional: a User can
+  // exist (and sign in) without ever creating an owner profile.
+  ownerProfile        OwnerProfile?
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+// One row per linked sign-in method (Google today; a future email/password
+// or other OAuth provider would also live here). This is exactly what lets
+// Google and email-magic-link converge on one User without a bespoke
+// identity table — see the account-linking note in src/lib/auth.ts.
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+// Shared short-lived-challenge table used by both the magicLink plugin
+// (identifier = email, value = token) and the phoneNumber plugin
+// (identifier = phone number, value = hashed/plain OTP per plugin
+// internals). Not queried directly by app code — the plugins own it.
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
