@@ -3,9 +3,24 @@
 // Phase 2 explicitly requires the public Discover experience to remain
 // unauthenticated. This route had no test at all before Phase 2 — added
 // here as the regression baseline, not a pre-existing one.
+//
+// Phase 3 adds an authenticated POST to this same route file, which pulls
+// in @/lib/auth (and, transitively, @/lib/email + @/lib/sms + @/lib/env)
+// at module load time even though GET never calls it. Mocking @/lib/auth
+// here keeps this test focused on GET's own behavior instead of requiring
+// real auth env vars — the same pattern tests/unit/auth/*.test.ts already
+// use for the same reason.
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
+
+class FakeAuthError extends Error {
+  readonly status = 401;
+}
+vi.mock('@/lib/auth', () => ({
+  AuthError: FakeAuthError,
+  requireAuthenticatedUser: vi.fn(),
+}));
 
 const findManyMock = vi.fn();
 vi.mock('@/lib/db', () => ({
