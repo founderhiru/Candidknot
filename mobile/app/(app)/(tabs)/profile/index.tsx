@@ -1,31 +1,33 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { AuthPromptSheet } from "@/components/AuthPromptSheet";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
 import { ErrorText } from "@/components/ErrorText";
 import { Screen } from "@/components/Screen";
+import { SectionHeader } from "@/components/SectionHeader";
+import { Skeleton } from "@/components/Skeleton";
 import { authClient, useSession } from "@/lib/auth-client";
 import type { OwnerProfileItem } from "@/lib/contracts";
 import { getOwnerProfile } from "@/lib/owner-profile-api";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { useRequireAuth } from "@/lib/use-require-auth";
+import { spacing, typography } from "@/theme/tokens";
 
 export default function ProfileScreen() {
-  const { data: session } = useSession();
+  const { data: session, isPending: isSessionPending } = useSession();
+  const { promptVisible, setPromptVisible } = useRequireAuth();
   const [profile, setProfile] = useState<OwnerProfileItem | null | undefined>(
     undefined,
   );
   const [profileError, setProfileError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const isAuthenticated = !!session;
 
   const load = useCallback(async () => {
+    if (!isAuthenticated) return;
     setProfileError(null);
     try {
       const result = await getOwnerProfile();
@@ -33,7 +35,7 @@ export default function ProfileScreen() {
     } catch {
       setProfileError("Couldn't load your profile.");
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useFocusEffect(
     useCallback(() => {
@@ -53,46 +55,74 @@ export default function ProfileScreen() {
   }
 
   const name = session?.user.name ?? null;
+  const contact = session?.user.email ?? session?.user.phoneNumber ?? "";
+
+  // Guest-first: no session content to show at all, so a guest sees a
+  // sign-in prompt for the whole tab rather than an empty account shell.
+  if (!isSessionPending && !isAuthenticated) {
+    return (
+      <Screen>
+        <EmptyState
+          title="You're browsing as a guest"
+          message="Sign in to set up your profile and manage your account."
+          actionLabel="Sign In"
+          onAction={() => setPromptVisible(true)}
+        />
+        <AuthPromptSheet
+          visible={promptVisible}
+          onClose={() => setPromptVisible(false)}
+          message="Sign in to access your profile."
+        />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
-          <Avatar name={name} />
-          <View style={styles.headerText}>
-            <Text style={typography.title}>{name ?? "Add your name"}</Text>
-            <Text style={typography.bodyMuted}>
-              {session?.user.email ?? session?.user.phoneNumber ?? ""}
-            </Text>
-          </View>
+          <Avatar name={name} size={80} />
+          <Text style={[typography.title, styles.name]}>
+            {name ?? "Add your name"}
+          </Text>
+          {profile?.city ? (
+            <View style={styles.locationRow}>
+              <Text style={typography.bodyMuted}>📍 {profile.city}</Text>
+            </View>
+          ) : null}
         </View>
 
-        <View style={styles.section}>
-          <Text style={typography.label}>ABOUT YOU</Text>
+        <Card style={styles.aboutCard}>
+          <SectionHeader
+            title="About Me"
+            action={{
+              label: profile ? "Edit" : "Set up",
+              onPress: () => router.push("/(app)/(tabs)/profile/edit"),
+            }}
+          />
           {profile === undefined && !profileError ? (
-            <ActivityIndicator style={styles.spinner} color={colors.accent} />
+            <View style={styles.skeletonWrap}>
+              <Skeleton height={16} width="90%" />
+              <Skeleton height={16} width="70%" style={styles.skeletonGap} />
+            </View>
           ) : profileError ? (
             <ErrorText>{profileError}</ErrorText>
           ) : profile ? (
-            <>
-              <Text style={[typography.body, styles.city]}>{profile.city}</Text>
-              <Text style={[typography.bodyMuted, styles.bio]}>
-                {profile.bio}
-              </Text>
-            </>
+            <Text style={typography.body}>{profile.bio}</Text>
           ) : (
             <Text style={typography.bodyMuted}>
               Set up your profile so other owners know a bit about you.
             </Text>
           )}
-          <View style={styles.editButton}>
-            <Button
-              label={profile ? "Edit Profile" : "Set Up Profile"}
-              onPress={() => router.push("/(app)/(tabs)/profile/edit")}
-              variant="secondary"
-            />
+        </Card>
+
+        <Card style={styles.contactCard}>
+          <SectionHeader title="Account" />
+          <View style={styles.contactRow}>
+            <Text style={typography.bodyMuted}>Contact</Text>
+            <Text style={typography.body}>{contact}</Text>
           </View>
-        </View>
+        </Card>
 
         <View style={styles.logoutButton}>
           <Button
@@ -118,12 +148,13 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   scroll: { paddingVertical: spacing.lg, paddingBottom: spacing.xxl },
-  header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  headerText: { flex: 1 },
-  section: { marginTop: spacing.xl },
-  spinner: { marginTop: spacing.sm, alignSelf: "flex-start" },
-  city: { marginTop: spacing.sm },
-  bio: { marginTop: spacing.xs },
-  editButton: { marginTop: spacing.md, alignSelf: "flex-start" },
+  header: { alignItems: "center" },
+  name: { marginTop: spacing.md },
+  locationRow: { marginTop: 2 },
+  aboutCard: { marginTop: spacing.xl },
+  contactCard: { marginTop: spacing.md },
+  contactRow: { flexDirection: "row", justifyContent: "space-between" },
+  skeletonWrap: { marginTop: spacing.xs },
+  skeletonGap: { marginTop: spacing.xs },
   logoutButton: { marginTop: spacing.xxl },
 });

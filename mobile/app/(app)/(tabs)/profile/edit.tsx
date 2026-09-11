@@ -1,7 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -11,8 +10,12 @@ import {
 } from "react-native";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { ErrorText } from "@/components/ErrorText";
+import { RequireAuthScreen } from "@/components/RequireAuthScreen";
 import { Screen } from "@/components/Screen";
+import { Skeleton } from "@/components/Skeleton";
+import { TextArea } from "@/components/TextArea";
 import { TextField } from "@/components/TextField";
 import { authClient, useSession } from "@/lib/auth-client";
 import {
@@ -25,9 +28,9 @@ import {
   type OwnerProfileFormValues,
   validateOwnerProfileForm,
 } from "@/lib/owner-profile-form";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { spacing, typography } from "@/theme/tokens";
 
-export default function EditProfileScreen() {
+function EditProfileScreenContent() {
   const { data: session } = useSession();
   const [values, setValues] = useState<OwnerProfileFormValues | null>(null);
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
@@ -111,8 +114,16 @@ export default function EditProfileScreen() {
   if (!values) {
     return (
       <Screen>
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
+        <View style={styles.loadingWrap}>
+          <Skeleton
+            height={80}
+            width={80}
+            borderRadius={40}
+            style={styles.centerSelf}
+          />
+          <Skeleton height={52} style={styles.gap} />
+          <Skeleton height={52} style={styles.gap} />
+          <Skeleton height={96} style={styles.gap} />
         </View>
       </Screen>
     );
@@ -135,43 +146,43 @@ export default function EditProfileScreen() {
             </Text>
           </View>
 
-          <TextField
-            label="Display name"
-            value={values.name}
-            onChangeText={(text) => setValues({ ...values, name: text })}
-            editable={!saving}
-            placeholder="Your name"
-            maxLength={100}
-          />
-          {errors.name ? <ErrorText>{errors.name}</ErrorText> : null}
-          {nameError ? <ErrorText>{nameError}</ErrorText> : null}
-
-          <View style={styles.field}>
+          <Card style={styles.formCard}>
             <TextField
-              label="City"
-              value={values.city}
-              onChangeText={(text) => setValues({ ...values, city: text })}
+              label="Display name"
+              value={values.name}
+              onChangeText={(text) => setValues({ ...values, name: text })}
               editable={!saving}
-              placeholder="e.g. Pune"
-              maxLength={120}
+              placeholder="Your name"
+              maxLength={100}
             />
-            {errors.city ? <ErrorText>{errors.city}</ErrorText> : null}
-          </View>
+            {errors.name ? <ErrorText>{errors.name}</ErrorText> : null}
+            {nameError ? <ErrorText>{nameError}</ErrorText> : null}
 
-          <View style={styles.field}>
-            <TextField
-              label="About you"
-              value={values.bio}
-              onChangeText={(text) => setValues({ ...values, bio: text })}
-              editable={!saving}
-              placeholder="A little about you and the kind of match you're looking for"
-              multiline
-              numberOfLines={4}
-              maxLength={1000}
-              style={styles.multiline}
-            />
-            {errors.bio ? <ErrorText>{errors.bio}</ErrorText> : null}
-          </View>
+            <View style={styles.field}>
+              <TextField
+                label="City"
+                value={values.city}
+                onChangeText={(text) => setValues({ ...values, city: text })}
+                editable={!saving}
+                placeholder="e.g. Pune"
+                maxLength={120}
+              />
+              {errors.city ? <ErrorText>{errors.city}</ErrorText> : null}
+            </View>
+
+            <View style={styles.field}>
+              <TextArea
+                label="About you"
+                value={values.bio}
+                onChangeText={(text) => setValues({ ...values, bio: text })}
+                editable={!saving}
+                placeholder="A little about you and the kind of match you're looking for"
+                maxLength={1000}
+              />
+              {errors.bio ? <ErrorText>{errors.bio}</ErrorText> : null}
+            </View>
+          </Card>
+
           {profileError ? <ErrorText>{profileError}</ErrorText> : null}
 
           <View style={styles.saveButton}>
@@ -185,24 +196,27 @@ export default function EditProfileScreen() {
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  loadingWrap: { paddingTop: spacing.xl },
+  centerSelf: { alignSelf: "center" },
+  gap: { marginTop: spacing.lg },
   flex: { flex: 1 },
-  scroll: {
-    paddingVertical: spacing.lg,
-    paddingBottom: spacing.xxl,
-    gap: spacing.lg,
-  },
+  scroll: { paddingVertical: spacing.lg, paddingBottom: spacing.xxl },
   avatarRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.lg,
   },
   avatarNote: { flex: 1 },
+  formCard: { gap: spacing.lg },
   field: { gap: 0 },
-  multiline: {
-    minHeight: 96,
-    textAlignVertical: "top",
-    paddingTop: spacing.sm,
-  },
-  saveButton: { marginTop: spacing.md },
+  saveButton: { marginTop: spacing.lg },
 });
+
+export default function EditProfileScreen() {
+  return (
+    <RequireAuthScreen>
+      <EditProfileScreenContent />
+    </RequireAuthScreen>
+  );
+}

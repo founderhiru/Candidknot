@@ -1,17 +1,20 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from "react-native";
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { DogFormFields } from "@/components/DogFormFields";
 import { ErrorText } from "@/components/ErrorText";
+import { RequireAuthScreen } from "@/components/RequireAuthScreen";
 import { Screen } from "@/components/Screen";
+import { Skeleton } from "@/components/Skeleton";
 import { getDog, updateDog } from "@/lib/dog-api";
 import {
   type DogFormValues,
@@ -19,9 +22,9 @@ import {
   isDogFormValid,
   validateDogForm,
 } from "@/lib/dog-form";
-import { colors, spacing } from "@/theme/tokens";
+import { spacing, typography } from "@/theme/tokens";
 
-export default function EditDogScreen() {
+function EditDogScreenContent() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [values, setValues] = useState<DogFormValues | null>(null);
   const [errors, setErrors] = useState<ReturnType<typeof validateDogForm>>({});
@@ -92,8 +95,11 @@ export default function EditDogScreen() {
   if (!values) {
     return (
       <Screen>
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
+        <View style={styles.loadingWrap}>
+          <Skeleton height={24} width="50%" />
+          <Skeleton height={52} style={styles.gap} />
+          <Skeleton height={52} style={styles.gap} />
+          <Skeleton height={52} style={styles.gap} />
         </View>
       </Screen>
     );
@@ -109,12 +115,15 @@ export default function EditDogScreen() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          <DogFormFields
-            values={values}
-            errors={errors}
-            onChange={setValues}
-            disabled={saving}
-          />
+          <Text style={[typography.title, styles.heading]}>Edit Details</Text>
+          <Card>
+            <DogFormFields
+              values={values}
+              errors={errors}
+              onChange={setValues}
+              disabled={saving}
+            />
+          </Card>
           {saveError ? <ErrorText>{saveError}</ErrorText> : null}
           <View style={styles.saveButton}>
             <Button
@@ -131,7 +140,18 @@ export default function EditDogScreen() {
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  loadingWrap: { paddingTop: spacing.xl },
+  gap: { marginTop: spacing.lg },
   flex: { flex: 1 },
   scroll: { paddingVertical: spacing.lg, paddingBottom: spacing.xxl },
+  heading: { marginBottom: spacing.lg },
   saveButton: { marginTop: spacing.xl },
 });
+
+export default function EditDogScreen() {
+  return (
+    <RequireAuthScreen>
+      <EditDogScreenContent />
+    </RequireAuthScreen>
+  );
+}
