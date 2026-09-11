@@ -29,6 +29,12 @@ model DogProfile {
   photos        DogPhoto[]
   healthRecords HealthRecord[]
 
+  // Launch MVP — see prisma/schema/interest.prisma. Interests other users
+  // have expressed in this dog.
+  interestsReceived Interest[]
+  // Launch MVP Phase A — see prisma/schema/match.prisma.
+  matches           Match[]
+
   @@index([breed])
   @@index([city])
   @@index([ownerId])

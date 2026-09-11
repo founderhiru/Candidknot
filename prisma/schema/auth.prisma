@@ -50,6 +50,20 @@ model User {
   // Phase 3 — see prisma/schema/owner-profile.prisma. Optional: a User can
   // exist (and sign in) without ever creating an owner profile.
   ownerProfile        OwnerProfile?
+  // Launch MVP — see prisma/schema/interest.prisma. Interests this user has
+  // sent (expressed) toward other owners' dogs.
+  sentInterests       Interest[]
+  // Launch MVP Phase A — see prisma/schema/match.prisma. A user can be
+  // either party of a Match: the one who sent the original Interest, or
+  // the dog owner who accepted it.
+  matchesAsSender     Match[]             @relation("MatchSender")
+  matchesAsReceiver   Match[]             @relation("MatchReceiver")
+  // Launch MVP Phase B — see prisma/schema/conversation.prisma.
+  messages            Message[]
+  // Launch MVP Phase C — see prisma/schema/entitlement.prisma.
+  entitlements        Entitlement[]
+  // Launch MVP Phase D — see prisma/schema/notification-event.prisma.
+  notificationEvents  NotificationEvent[]
 
   @@map("user")
 }

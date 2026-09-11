@@ -73,12 +73,23 @@ export default function DogDetailScreen() {
 
         <Text style={[typography.body, styles.bio]}>{dog.bio}</Text>
 
-        <View style={styles.editButton}>
-          <Button
-            label="Edit Details"
-            onPress={() => router.push(`/(app)/(tabs)/my-dog/${dog.id}/edit`)}
-            variant="secondary"
-          />
+        <View style={styles.actionRow}>
+          <View style={styles.actionButton}>
+            <Button
+              label="Edit Details"
+              onPress={() => router.push(`/(app)/(tabs)/my-dog/${dog.id}/edit`)}
+              variant="secondary"
+            />
+          </View>
+          <View style={styles.actionButton}>
+            <Button
+              label="Health Passport"
+              onPress={() =>
+                router.push(`/(app)/(tabs)/my-dog/${dog.id}/health`)
+              }
+              variant="secondary"
+            />
+          </View>
         </View>
 
         <View style={styles.photos}>
@@ -104,6 +115,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   bio: { marginTop: spacing.lg },
-  editButton: { marginTop: spacing.lg, alignSelf: "flex-start" },
+  actionRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg },
+  actionButton: { flex: 1 },
   photos: { marginTop: spacing.xl },
 });

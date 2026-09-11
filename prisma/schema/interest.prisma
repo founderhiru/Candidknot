@@ -1,0 +1,29 @@
+// @polsia:user-owned — Launch MVP: minimal Interest model. One
+// authenticated user (the sender) expressing interest in one DogProfile
+// (the target dog). `status` transitions pending -> accepted/declined via
+// PATCH /api/interests/[id] (Phase A) — accepting creates a Match (see
+// prisma/schema/match.prisma); this is deliberately mutual-consent-based,
+// not an algorithm.
+//
+// Ownership: senderId is always requireAuthenticatedUser().id, never a
+// client-supplied value — see src/app/api/interests/route.ts. The
+// @@unique constraint below prevents duplicate interest at the DB level
+// as well as the app level (defense in depth). Self-interest
+// (targetDog.ownerId === senderId) is rejected at the app level, since a
+// DB constraint can't express a cross-table equality check.
+
+model Interest {
+  id          String     @id @default(cuid())
+  senderId    String
+  sender      User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  targetDogId String
+  targetDog   DogProfile @relation(fields: [targetDogId], references: [id], onDelete: Cascade)
+  status      String     @default("pending")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  match       Match?
+
+  @@unique([senderId, targetDogId])
+  @@index([targetDogId])
+  @@map("interest")
+}

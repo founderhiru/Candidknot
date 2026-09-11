@@ -1,17 +1,32 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AuthPromptSheet } from "@/components/AuthPromptSheet";
 import { HealthBadge, VerifiedBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
+import { ErrorText } from "@/components/ErrorText";
 import { Screen } from "@/components/Screen";
 import { SectionHeader } from "@/components/SectionHeader";
+import { ApiError } from "@/lib/api-client";
 import { getCachedDiscoverDog } from "@/lib/discover-cache";
+import { expressInterest } from "@/lib/interest-api";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { colors, spacing, typography } from "@/theme/tokens";
 
 const HERO_HEIGHT = 300;
+
+type InterestState = "idle" | "sending" | "sent" | "error";
+
+/** Reads the backend's `{ error: string }` body, falling back to a generic message. */
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    const body = err.body as { error?: string } | null;
+    if (body?.error) return body.error;
+  }
+  return "Couldn't send your interest. Check your connection and try again.";
+}
 
 /**
  * Public Dog Detail — no auth required to view (guest-first). There is no
@@ -24,6 +39,8 @@ export default function PublicDogDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const dog = getCachedDiscoverDog(id);
   const { promptVisible, setPromptVisible, requireAuth } = useRequireAuth();
+  const [interestState, setInterestState] = useState<InterestState>("idle");
+  const [interestError, setInterestError] = useState<string | null>(null);
 
   if (!dog) {
     return (
@@ -40,11 +57,21 @@ export default function PublicDogDetailScreen() {
 
   function handleExpressInterest() {
     requireAuth(() => {
-      Alert.alert(
-        "Coming soon",
-        "Expressing interest isn't available yet — we'll let you know when it launches.",
-      );
+      void sendInterest();
     });
+  }
+
+  async function sendInterest() {
+    if (!dog) return;
+    setInterestError(null);
+    setInterestState("sending");
+    try {
+      await expressInterest(dog.id);
+      setInterestState("sent");
+    } catch (err) {
+      setInterestError(extractErrorMessage(err));
+      setInterestState("error");
+    }
   }
 
   return (
@@ -76,9 +103,28 @@ export default function PublicDogDetailScreen() {
             <Text style={typography.body}>{dog.bio}</Text>
           </Card>
 
-          <View style={styles.expressInterest}>
-            <Button label="Express Interest" onPress={handleExpressInterest} />
-          </View>
+          {interestState === "sent" ? (
+            <Card style={styles.interestSentCard}>
+              <Text style={[typography.body, styles.interestSentTitle]}>
+                Interest sent
+              </Text>
+              <Text style={typography.bodyMuted}>
+                We'll let you know if there's a response.
+              </Text>
+            </Card>
+          ) : (
+            <View style={styles.expressInterest}>
+              <Button
+                label="Express Interest"
+                onPress={handleExpressInterest}
+                loading={interestState === "sending"}
+                disabled={interestState === "sending"}
+              />
+              {interestState === "error" && interestError ? (
+                <ErrorText>{interestError}</ErrorText>
+              ) : null}
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -105,4 +151,9 @@ const styles = StyleSheet.create({
   badgeRow: { flexDirection: "row", gap: spacing.xs, marginTop: spacing.md },
   aboutCard: { marginTop: spacing.lg },
   expressInterest: { marginTop: spacing.xl },
+  interestSentCard: {
+    marginTop: spacing.xl,
+    backgroundColor: colors.successTint,
+  },
+  interestSentTitle: { fontWeight: "700", marginBottom: spacing.xs },
 });

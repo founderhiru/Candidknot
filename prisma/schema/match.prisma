@@ -1,0 +1,32 @@
+// @polsia:user-owned — Launch MVP Phase A: minimal Match model. A Match is
+// created when the target dog's owner accepts an Interest (see
+// src/app/api/interests/[id]/route.ts) — mutual consent (sender initiated
+// by expressing interest, receiver reciprocated by accepting) is the
+// "reciprocal condition" for launch, not an algorithm (see launch MVP
+// scope: "matching is relationship-based, not AI-based").
+//
+// senderId/receiverId are denormalized copies of interest.senderId /
+// targetDog.ownerId at accept time, so listing "my matches" never needs to
+// join through Interest -> DogProfile -> User. interestId is @unique so an
+// Interest can produce at most one Match (defense in depth alongside the
+// app-level "already responded to" check in the accept/decline route).
+
+model Match {
+  id           String        @id @default(cuid())
+  interestId   String        @unique
+  interest     Interest      @relation(fields: [interestId], references: [id], onDelete: Cascade)
+  senderId     String
+  sender       User          @relation("MatchSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId   String
+  receiver     User          @relation("MatchReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  targetDogId  String
+  targetDog    DogProfile    @relation(fields: [targetDogId], references: [id], onDelete: Cascade)
+  status       String        @default("active")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  conversation Conversation?
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@map("match")
+}

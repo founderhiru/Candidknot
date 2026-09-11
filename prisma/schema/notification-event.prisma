@@ -1,0 +1,19 @@
+// @polsia:user-owned — Launch MVP Phase D: minimal notification event log.
+// No push credentials/infrastructure exist (see launch MVP scope) — this
+// only establishes clean server-side event boundaries (see
+// src/lib/notifications.ts) so a future push-notification phase has
+// something to read from without another migration. `read` lets a future
+// mobile screen show unread state; nothing renders it yet.
+
+model NotificationEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  payload   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("notification_event")
+}

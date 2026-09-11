@@ -124,6 +124,22 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
+        <View style={styles.myDogsButton}>
+          <Button
+            label="My Dogs"
+            onPress={() => router.push("/(app)/(tabs)/my-dog")}
+            variant="secondary"
+          />
+        </View>
+
+        <View style={styles.notificationsButton}>
+          <Button
+            label="Notifications"
+            onPress={() => router.push("/(app)/(tabs)/profile/notifications")}
+            variant="secondary"
+          />
+        </View>
+
         <View style={styles.logoutButton}>
           <Button
             label="Log out"
@@ -154,6 +170,8 @@ const styles = StyleSheet.create({
   aboutCard: { marginTop: spacing.xl },
   contactCard: { marginTop: spacing.md },
   contactRow: { flexDirection: "row", justifyContent: "space-between" },
+  myDogsButton: { marginTop: spacing.md },
+  notificationsButton: { marginTop: spacing.md },
   skeletonWrap: { marginTop: spacing.xs },
   skeletonGap: { marginTop: spacing.xs },
   logoutButton: { marginTop: spacing.xxl },

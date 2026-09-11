@@ -1,0 +1,34 @@
+// @polsia:user-owned — Launch MVP Phase B: one Conversation per Match,
+// created eagerly in the same transaction as the Match (see
+// src/app/api/interests/[id]/route.ts) so an accepted match always has a
+// conversation to open — no separate create-conversation step/endpoint.
+// Eligibility for every conversation/message route is "is the caller
+// match.senderId or match.receiverId" — see loadOwnedConversation in
+// src/lib/conversation-ownership.ts.
+
+model Conversation {
+  id        String    @id @default(cuid())
+  matchId   String    @unique
+  match     Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("conversation")
+}
+
+// @polsia:user-owned — Launch MVP Phase B: a single text message. No
+// attachments/read-receipts/reactions/typing-indicators by design (see
+// launch MVP scope).
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("message")
+}

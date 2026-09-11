@@ -1,0 +1,24 @@
+// @polsia:user-owned — Launch MVP Phase C: minimal service/entitlement
+// record. No payment provider is wired up yet (see
+// src/lib/payments/provider.ts) — a row here is only ever meant to be
+// created by a verified payment callback in a future phase; nothing in
+// this codebase creates one today (POST /api/entitlements/purchase always
+// returns 501 — see that route), so "requires purchase" is simply "no
+// active row exists for this user+service+scope". scopeId is nullable so
+// an entitlement can be account-wide (null) or scoped to one resource
+// (the MVP's only paid service is scoped to a conversationId).
+
+model Entitlement {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service   String
+  scopeId   String?
+  status    String    @default("active")
+  source    String    @default("manual")
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  @@index([userId, service, scopeId])
+  @@map("entitlement")
+}

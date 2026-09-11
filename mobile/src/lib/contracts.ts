@@ -5,6 +5,7 @@
 // apiFetch's `schema` option can validate what comes back. Keep in sync
 // with the backend contracts if those ever change.
 import { z } from "zod";
+import { HealthRecordItem } from "@/lib/health-contracts";
 
 // --- Owner profile (GET/POST/PATCH /api/owner-profile) ---------------------
 
@@ -61,17 +62,15 @@ export const DogPhotoItem = z.object({
 });
 export type DogPhotoItem = z.infer<typeof DogPhotoItem>;
 
-// The backend's HealthRecordItem shape isn't needed on mobile in M2 (Health
-// Passport is a later phase) — kept as an untyped passthrough so parsing
-// the dog response doesn't require mirroring a contract this phase doesn't
-// use.
+// Health Passport phase — mirrors the backend's real HealthRecordItem shape
+// (see health-contracts.ts) now that mobile has its own health-records UI.
 export const OwnedDogProfileItem = DogProfileWrite.extend({
   id: z.string(),
   slug: z.string(),
   isVerified: z.boolean(),
   ownerId: z.string().nullable(),
   photos: z.array(DogPhotoItem),
-  healthRecords: z.array(z.unknown()),
+  healthRecords: z.array(HealthRecordItem),
 });
 export type OwnedDogProfileItem = z.infer<typeof OwnedDogProfileItem>;
 
