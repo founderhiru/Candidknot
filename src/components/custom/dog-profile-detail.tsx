@@ -4,6 +4,7 @@
 import {
   ArrowLeft,
   Check,
+  HeartHandshake,
   HeartPulse,
   MapPin,
   PawPrint,
@@ -11,16 +12,19 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/api-client';
+import { useSession } from '@/lib/auth-client';
 import {
   type DogProfileItem as DogProfileItemType,
   DogProfileList,
 } from '@/lib/contracts/dog-profiles';
+import { InterestItem, type InterestWrite } from '@/lib/contracts/interests';
 
 function initials(name: string): string {
   return name
@@ -29,6 +33,98 @@ function initials(name: string): string {
     .join('')
     .slice(0, 2)
     .toUpperCase();
+}
+
+type InterestState = 'idle' | 'sending' | 'sent' | 'self' | 'error';
+
+/** apiFetch (see src/lib/api-client.ts) embeds the HTTP status only in the Error message text, e.g. "apiFetch /api/interests failed (409)" — this pulls it back out. */
+function statusFromApiError(err: unknown): number | null {
+  if (!(err instanceof Error)) return null;
+  const match = err.message.match(/\((\d+)\)$/);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Express Interest — reuses the existing POST /api/interests endpoint and
+ * InterestItem/InterestWrite contracts (src/lib/contracts/interests.ts) built
+ * for mobile; no second interest system. Logged-out clicks go through the
+ * existing /login?next=... flow (same pattern as my-dogs-view.tsx) and land
+ * back on this exact dog detail page. A 409 (duplicate) from the backend is
+ * treated the same as success — the backend is the only source of truth for
+ * "already sent", so this never needs a separate status-check endpoint.
+ */
+function ExpressInterestSection({ dog, slug }: { dog: DogProfileItemType; slug: string }) {
+  const router = useRouter();
+  const { data: session, isPending: sessionPending } = useSession();
+  const [state, setState] = useState<InterestState>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function handleExpressInterest() {
+    if (sessionPending) return;
+
+    if (!session?.session) {
+      router.push(`/login?next=/discover/${slug}`);
+      return;
+    }
+
+    setState('sending');
+    setErrorMessage(null);
+    try {
+      const payload: InterestWrite = { targetDogId: dog.id };
+      await apiFetch('/api/interests', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        schema: InterestItem,
+      });
+      setState('sent');
+    } catch (err) {
+      const status = statusFromApiError(err);
+      if (status === 409) {
+        // Already expressed interest in this dog — same end state as a
+        // fresh success, not an error.
+        setState('sent');
+      } else if (status === 401) {
+        router.push(`/login?next=/discover/${slug}`);
+      } else if (status === 400) {
+        setState('self');
+      } else {
+        setState('error');
+        setErrorMessage("Couldn't send your interest. Please try again.");
+      }
+    }
+  }
+
+  if (state === 'sent') {
+    return (
+      <div className="mt-6 flex items-center gap-2 border-t border-border pt-6 text-sm font-semibold text-brand-700">
+        <Check className="size-4" /> Interest sent — we'll let you know if there's a response.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 border-t border-border pt-6">
+      <Button
+        type="button"
+        className="gap-2"
+        disabled={state === 'sending' || sessionPending}
+        onClick={handleExpressInterest}
+      >
+        <HeartHandshake className="size-4" />
+        {state === 'sending' ? 'Sending…' : 'Express Interest'}
+      </Button>
+      {state === 'self' && (
+        <p className="mt-2 text-sm text-muted-foreground" role="alert">
+          You can't express interest in your own dog.
+        </p>
+      )}
+      {state === 'error' && errorMessage && (
+        <p className="mt-2 text-sm text-destructive" role="alert">
+          {errorMessage}
+        </p>
+      )}
+    </div>
+  );
 }
 
 type LoadState =
@@ -201,6 +297,8 @@ export function DogProfileDetail({ slug }: { slug: string }) {
                     {state.profile.distanceKm.toFixed(1)} km away
                   </div>
                 )}
+
+                <ExpressInterestSection dog={state.profile} slug={slug} />
               </CardContent>
             </Card>
           )}
