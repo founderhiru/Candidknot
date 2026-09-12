@@ -56,7 +56,22 @@ export default function MobileNumberScreen() {
   async function handleGoogle() {
     setError(null);
     try {
-      await authClient.signIn.social({ provider: "google", callbackURL: "/" });
+      const { error: signInError } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+      if (signInError) {
+        setError(signInError.message ?? "Google sign-in failed, try again");
+        return;
+      }
+      // The Google OAuth roundtrip runs entirely inside the awaited call
+      // above (an in-app browser session — see @better-auth/expo's
+      // expoClient plugin), so unlike a deep-link-based return, nothing
+      // else ever navigates us away from this screen. By the time we get
+      // here the session cookie is already stored; app/index.tsx's
+      // useSession()-driven redirect only runs while mounted at "/", so
+      // it needs to be explicitly remounted.
+      router.replace("/");
     } catch {
       setError("Google sign-in failed, try again");
     }

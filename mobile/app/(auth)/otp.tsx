@@ -42,8 +42,12 @@ export default function OtpVerificationScreen() {
         setCode("");
         return;
       }
-      // Success: useSession() at the root will pick up the new session and
-      // app/index.tsx redirects to Discover — no manual navigation here.
+      // The session cookie is already stored at this point (a normal
+      // fetch response, captured directly by @better-auth/expo's client
+      // plugin) — but app/index.tsx's useSession()-driven redirect only
+      // runs while mounted at "/", and we navigated away from it to get
+      // here, so it needs to be explicitly remounted.
+      router.replace("/");
     } catch {
       setError("Incorrect code, try again");
       setCode("");

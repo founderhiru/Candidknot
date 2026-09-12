@@ -25,6 +25,13 @@ import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 import { env } from "./env";
 
+// Single source of truth for the SecureStore key @better-auth/expo's
+// expoClient plugin derives internally as `${storagePrefix}_cookie` — see
+// app/index.tsx, which writes to this same key directly to finish the
+// email magic-link sign-in flow (see the comment there for why).
+const STORAGE_PREFIX = "canidknot";
+export const SESSION_COOKIE_STORAGE_KEY = `${STORAGE_PREFIX}_cookie`;
+
 export const authClient = createAuthClient({
   baseURL: env.apiUrl,
   plugins: [
@@ -32,7 +39,7 @@ export const authClient = createAuthClient({
     phoneNumberClient(),
     expoClient({
       scheme: env.appScheme,
-      storagePrefix: "canidknot",
+      storagePrefix: STORAGE_PREFIX,
       storage: SecureStore,
     }),
   ],
