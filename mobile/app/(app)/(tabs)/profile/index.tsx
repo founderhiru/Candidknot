@@ -79,7 +79,10 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scroll}
+      >
         <View style={styles.header}>
           <Avatar name={name} size={80} />
           <Text style={[typography.title, styles.name]}>
@@ -163,6 +166,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollView: { flex: 1 },
   scroll: { paddingVertical: spacing.lg, paddingBottom: spacing.xxl },
   header: { alignItems: "center" },
   name: { marginTop: spacing.md },
