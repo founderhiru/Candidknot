@@ -15,7 +15,10 @@
       "package": "com.canidknot.app",
       "adaptiveIcon": {
         "backgroundColor": "#FBF8F3"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -29,6 +32,15 @@
     ],
     "experiments": {
       "typedRoutes": false
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "d82bc94b-0eb5-4bc5-b02e-efc18daa6642"
+      }
+    },
+    "owner": "rontest"
   }
 }
