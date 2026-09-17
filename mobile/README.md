@@ -1,7 +1,7 @@
-# CanidKnot Mobile (Phase mobile-M1)
+# Kinro Mobile (Phase mobile-M1)
 
 Expo (React Native) foundation + authentication session bridge to the
-existing CanidKnot Next.js/better-auth backend. **M1 scope only** — see
+existing Kinro Next.js/better-auth backend. **M1 scope only** — see
 `/canidknot-mobile-implementation-roadmap.md` at the repo root for what
 later phases add.
 
