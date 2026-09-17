@@ -24,7 +24,7 @@ export function Badge({
   );
 }
 
-/** Dog is verified by CanidKnot — used on My Dog cards and Dog Detail. */
+/** Dog is verified by Kinro — used on My Dog cards and Dog Detail. */
 export function VerifiedBadge() {
   return <Badge label="✓ Verified" tone="success" />;
 }

@@ -3,16 +3,26 @@ import { Redirect, useLocalSearchParams } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { PhotoPlaceholder } from "@/components/PhotoPlaceholder";
 import { SESSION_COOKIE_STORAGE_KEY, useSession } from "@/lib/auth-client";
 import { resolveInitialRoute, type SessionStatus } from "@/lib/session-guard";
-import { colors, typography } from "@/theme/tokens";
+import { colors, spacing, typography } from "@/theme/tokens";
 
+/**
+ * Full-bleed splash matching the brand reference (large dog-photography
+ * moment first). PhotoPlaceholder's "deep" tone stands in for real hero
+ * photography — see assets/images/README.md for the swap-in path once
+ * real photos exist.
+ */
 function LoadingSplash() {
   return (
-    <View style={styles.container}>
-      <Text style={typography.title}>CanidKnot</Text>
-      <ActivityIndicator style={styles.spinner} color={colors.accent} />
-    </View>
+    <PhotoPlaceholder tone="deep" style={styles.container}>
+      <View style={styles.copy}>
+        <Text style={styles.wordmark}>Kinro</Text>
+        <Text style={styles.tagline}>Dogs bring people closer</Text>
+        <ActivityIndicator style={styles.spinner} color={colors.textOnDark} />
+      </View>
+    </PhotoPlaceholder>
   );
 }
 
@@ -97,10 +107,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.background,
+    justifyContent: "flex-end",
+  },
+  copy: {
+    alignItems: "center",
+    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.screenPadding,
+  },
+  wordmark: {
+    ...typography.display,
+    color: colors.textOnDark,
+  },
+  tagline: {
+    ...typography.body,
+    color: colors.textOnDarkMuted,
+    marginTop: spacing.xs,
   },
   spinner: {
-    marginTop: 24,
+    marginTop: spacing.lg,
   },
 });

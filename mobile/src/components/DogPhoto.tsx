@@ -7,6 +7,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import { PhotoPlaceholder } from "@/components/PhotoPlaceholder";
 import { Skeleton } from "@/components/Skeleton";
 import { colors } from "@/theme/tokens";
 
@@ -43,12 +44,11 @@ export function DogPhoto({
 
   if (!uri || status === "error") {
     return (
-      <View style={[styles.placeholder, style]}>
-        <Text style={styles.placeholderEmoji}>🐾</Text>
+      <PhotoPlaceholder style={style}>
         {emptyLabel ? (
           <Text style={styles.placeholderLabel}>{emptyLabel}</Text>
         ) : null}
-      </View>
+      </PhotoPlaceholder>
     );
   }
 
@@ -71,11 +71,5 @@ export function DogPhoto({
 }
 
 const styles = StyleSheet.create({
-  placeholder: {
-    backgroundColor: colors.backgroundAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  placeholderEmoji: { fontSize: 32 },
-  placeholderLabel: { marginTop: 6, color: colors.textMuted, fontSize: 13 },
+  placeholderLabel: { marginTop: 8, color: colors.textMuted, fontSize: 13 },
 });

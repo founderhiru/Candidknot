@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "CanidKnot",
+    "name": "Kinro",
     "slug": "canidknot",
     "scheme": "canidknot",
     "version": "0.1.0",
@@ -16,17 +16,15 @@
       "adaptiveIcon": {
         "backgroundColor": "#FBF8F3"
       },
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
     "plugins": [
       "expo-router",
       [
         "expo-image-picker",
         {
-          "photosPermission": "CanidKnot needs access to your photos so you can add pictures of your dog.",
-          "cameraPermission": "CanidKnot needs access to your camera so you can take a photo of your dog."
+          "photosPermission": "Kinro needs access to your photos so you can add pictures of your dog.",
+          "cameraPermission": "Kinro needs access to your camera so you can take a photo of your dog."
         }
       ]
     ],

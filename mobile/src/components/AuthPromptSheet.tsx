@@ -34,7 +34,7 @@ export function AuthPromptSheet({
       title="Sign in to continue"
     >
       <Text style={[typography.body, styles.message]}>
-        {message ?? "Create a free CanidKnot account to continue."}
+        {message ?? "Create a free Kinro account to continue."}
       </Text>
       <View style={styles.actions}>
         <Button label="Continue" onPress={handleContinue} />

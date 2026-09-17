@@ -1,5 +1,5 @@
 // Mobile design system tokens — expanded for the M1/M2 UX refinement pass.
-// Additive to the M1 foundation: same CanidKnot green/warm-cream identity,
+// Additive to the M1 foundation: same Kinro green/warm-cream identity,
 // no new brand direction. Every screen should theme from here rather than
 // hand-rolling colors/spacing/type in its own StyleSheet.
 
@@ -18,7 +18,7 @@ export const colors = {
   border: "#E7E0D4",
   borderStrong: "#D8CDB9",
 
-  accent: "#2F6B4F", // CanidKnot brand green
+  accent: "#2F6B4F", // Kinro brand green
   accentDark: "#234F3B",
   accentTint: "#E3EFE8", // green-tinted background for chips/badges
   accentText: "#FFFFFF",
