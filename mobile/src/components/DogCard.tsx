@@ -1,5 +1,6 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { HealthBadge, VerifiedBadge } from "@/components/Badge";
+import { DogPhoto } from "@/components/DogPhoto";
 import type { OwnedDogProfileItem } from "@/lib/contracts";
 import {
   colors,
@@ -34,14 +35,11 @@ export function DogCard({
       ]}
       accessibilityRole="button"
     >
-      {cover ? (
-        <Image source={{ uri: cover.url }} style={styles.photo} />
-      ) : (
-        <View style={[styles.photo, styles.photoPlaceholder]}>
-          <Text style={styles.photoPlaceholderEmoji}>🐾</Text>
-          <Text style={typography.bodyMuted}>No photo yet</Text>
-        </View>
-      )}
+      <DogPhoto
+        uri={cover?.url}
+        style={styles.photo}
+        emptyLabel="No photo yet"
+      />
 
       {primary ? (
         <View style={styles.primaryBadge}>
@@ -72,13 +70,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   photo: { width: "100%", height: 220 },
-  photoPlaceholder: {
-    backgroundColor: colors.backgroundAlt,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-  },
-  photoPlaceholderEmoji: { fontSize: 32 },
   primaryBadge: {
     position: "absolute",
     top: spacing.sm,

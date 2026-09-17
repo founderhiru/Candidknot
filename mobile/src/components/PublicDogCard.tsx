@@ -1,5 +1,6 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { HealthBadge, VerifiedBadge } from "@/components/Badge";
+import { DogPhoto } from "@/components/DogPhoto";
 import type { DogProfileItem } from "@/lib/discover-contracts";
 import {
   colors,
@@ -28,13 +29,7 @@ export function PublicDogCard({
       ]}
       accessibilityRole="button"
     >
-      {dog.coverPhotoUrl ? (
-        <Image source={{ uri: dog.coverPhotoUrl }} style={styles.photo} />
-      ) : (
-        <View style={[styles.photo, styles.photoPlaceholder]}>
-          <Text style={styles.photoPlaceholderEmoji}>🐾</Text>
-        </View>
-      )}
+      <DogPhoto uri={dog.coverPhotoUrl} style={styles.photo} />
       <View style={styles.info}>
         <Text style={typography.sectionTitle}>{dog.name}</Text>
         <Text style={[typography.bodyMuted, styles.meta]}>
@@ -59,12 +54,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   photo: { width: "100%", height: 200 },
-  photoPlaceholder: {
-    backgroundColor: colors.backgroundAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  photoPlaceholderEmoji: { fontSize: 32 },
   info: { padding: spacing.cardPadding },
   meta: { marginTop: 2 },
   badgeRow: { flexDirection: "row", gap: spacing.xs, marginTop: spacing.sm },

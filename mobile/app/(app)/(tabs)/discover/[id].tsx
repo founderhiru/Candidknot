@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { AuthPromptSheet } from "@/components/AuthPromptSheet";
 import { HealthBadge, VerifiedBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DogPhoto } from "@/components/DogPhoto";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorText } from "@/components/ErrorText";
 import { Screen } from "@/components/Screen";
@@ -77,13 +78,7 @@ export default function PublicDogDetailScreen() {
   return (
     <Screen noPadding edges={["bottom"]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {dog.coverPhotoUrl ? (
-          <Image source={{ uri: dog.coverPhotoUrl }} style={styles.hero} />
-        ) : (
-          <View style={[styles.hero, styles.heroPlaceholder]}>
-            <Text style={styles.heroPlaceholderEmoji}>🐾</Text>
-          </View>
-        )}
+        <DogPhoto uri={dog.coverPhotoUrl} style={styles.hero} />
 
         <View style={styles.body}>
           <Text style={typography.title}>{dog.name}</Text>
@@ -140,12 +135,6 @@ export default function PublicDogDetailScreen() {
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl },
   hero: { width: "100%", height: HERO_HEIGHT },
-  heroPlaceholder: {
-    backgroundColor: colors.backgroundAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroPlaceholderEmoji: { fontSize: 40 },
   body: { paddingHorizontal: spacing.screenPadding, marginTop: spacing.lg },
   subtitle: { marginTop: spacing.xs },
   badgeRow: { flexDirection: "row", gap: spacing.xs, marginTop: spacing.md },
