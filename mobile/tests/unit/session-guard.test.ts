@@ -6,8 +6,8 @@ describe("resolveInitialRoute", () => {
     expect(resolveInitialRoute("loading")).toBeNull();
   });
 
-  it("routes to Discover when authenticated", () => {
-    expect(resolveInitialRoute("authenticated")).toBe(ROUTES.discover);
+  it("routes to Home when authenticated", () => {
+    expect(resolveInitialRoute("authenticated")).toBe(ROUTES.home);
   });
 
   it("routes to Welcome when unauthenticated", () => {

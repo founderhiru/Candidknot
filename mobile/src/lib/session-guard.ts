@@ -5,6 +5,7 @@
 export type SessionStatus = "loading" | "authenticated" | "unauthenticated";
 
 export const ROUTES = {
+  home: "/(app)/(tabs)/my-dog",
   discover: "/(app)/(tabs)/discover",
   welcome: "/welcome",
 } as const;
@@ -18,5 +19,5 @@ export function resolveInitialRoute(status: SessionStatus): string | null {
   if (status === "loading") {
     return null;
   }
-  return status === "authenticated" ? ROUTES.discover : ROUTES.welcome;
+  return status === "authenticated" ? ROUTES.home : ROUTES.welcome;
 }

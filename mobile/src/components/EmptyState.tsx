@@ -1,8 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/Button";
+import { EmptyStateIllustration } from "@/components/EmptyStateIllustration";
 import { colors, radius, spacing, typography } from "@/theme/tokens";
 
 interface EmptyStateProps {
+  /** Only used by screens outside this pass's scope that still pass an emoji glyph; new call sites should omit this and get the illustration. */
   emoji?: string;
   title: string;
   message: string;
@@ -12,7 +14,7 @@ interface EmptyStateProps {
 
 /** Friendly, visually-framed empty state — replaces plain "no items" text across screens. */
 export function EmptyState({
-  emoji = "🐾",
+  emoji,
   title,
   message,
   actionLabel,
@@ -20,10 +22,14 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconCircle}>
-        <Text style={styles.emoji}>{emoji}</Text>
-      </View>
-      <Text style={typography.sectionTitle}>{title}</Text>
+      {emoji ? (
+        <View style={styles.iconCircle}>
+          <Text style={styles.emoji}>{emoji}</Text>
+        </View>
+      ) : (
+        <EmptyStateIllustration size={96} />
+      )}
+      <Text style={[typography.sectionTitle, styles.title]}>{title}</Text>
       <Text style={[typography.bodyMuted, styles.message]}>{message}</Text>
       {actionLabel && onAction ? (
         <View style={styles.action}>
@@ -50,6 +56,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   emoji: { fontSize: 40 },
+  title: { marginTop: spacing.lg },
   message: {
     textAlign: "center",
     marginTop: spacing.xs,
