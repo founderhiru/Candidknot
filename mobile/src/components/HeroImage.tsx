@@ -7,10 +7,10 @@ interface HeroImageProps {
   /**
    * The full-bleed background image (a static require() — RN resolves
    * these at bundle time, so each screen supplies its own dedicated
-   * asset from assets/images/). Currently stylized warm placeholder
-   * artwork rather than real photography — see assets/images/README.md
-   * for the swap-in path once real photos exist; no code change needed
-   * here when that happens, only the asset file.
+   * asset from assets/images/). Currently an illustrated dog scene
+   * rather than real photography — see assets/images/README.md for the
+   * swap-in path once real photos exist; no code change needed here
+   * when that happens, only the asset file.
    */
   source: ImageSourcePropType;
   /** Darkens the lower portion for text legibility over the photo (Splash/Welcome copy sits here). */

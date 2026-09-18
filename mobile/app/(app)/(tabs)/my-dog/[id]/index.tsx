@@ -75,6 +75,7 @@ export default function DogDetailScreen() {
         <View style={styles.heroWrap}>
           <DogPhoto
             uri={cover?.url}
+            demoKey={dog.slug}
             style={styles.hero}
             emptyLabel="No photo yet"
           />
