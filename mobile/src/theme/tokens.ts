@@ -10,7 +10,7 @@ export const colors = {
   surface: "#FFFFFF",
   surfaceElevated: "#FFFFFF",
 
-  text: "#1F1B16",
+  text: "#262A28",
   textMuted: "#6B6459",
   textOnDark: "#FFFFFF",
   textOnDarkMuted: "rgba(255,255,255,0.82)",

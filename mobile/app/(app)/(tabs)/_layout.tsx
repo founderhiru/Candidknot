@@ -1,9 +1,53 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/theme/tokens";
 
 const TAB_BAR_CONTENT_HEIGHT = 54;
+
+type TabRouteName = "my-dog" | "discover" | "matches" | "profile";
+
+// Ionicons outline/filled pairs — outline for inactive, filled for
+// active, matching react-navigation's own (focused, color, size) signature.
+// @expo/vector-icons ships as a dependency of `expo` itself (already
+// installed — see mobile/package.json), so this adds no new dependency.
+// A switch (rather than a Record lookup) sidesteps noUncheckedIndexedAccess
+// entirely, since every branch returns a definite, non-optional value.
+function iconNamesFor(routeName: TabRouteName): {
+  outline: string;
+  filled: string;
+} {
+  switch (routeName) {
+    case "my-dog":
+      return { outline: "home-outline", filled: "home" };
+    case "discover":
+      return { outline: "compass-outline", filled: "compass" };
+    case "matches":
+      return { outline: "heart-outline", filled: "heart" };
+    case "profile":
+      return { outline: "person-outline", filled: "person" };
+  }
+}
+
+function makeTabBarIcon(routeName: TabRouteName) {
+  const icons = iconNamesFor(routeName);
+  return ({
+    focused,
+    color,
+    size,
+  }: {
+    focused: boolean;
+    color: string;
+    size: number;
+  }) => (
+    <Ionicons
+      name={(focused ? icons.filled : icons.outline) as never}
+      size={size}
+      color={color}
+    />
+  );
+}
 
 /**
  * The approved 4-tab architecture: Home | Discover | Matches | Profile.
@@ -43,10 +87,22 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="my-dog" options={{ title: "Home" }} />
-      <Tabs.Screen name="discover" options={{ title: "Discover" }} />
-      <Tabs.Screen name="matches" options={{ title: "Matches" }} />
-      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      <Tabs.Screen
+        name="my-dog"
+        options={{ title: "Home", tabBarIcon: makeTabBarIcon("my-dog") }}
+      />
+      <Tabs.Screen
+        name="discover"
+        options={{ title: "Discover", tabBarIcon: makeTabBarIcon("discover") }}
+      />
+      <Tabs.Screen
+        name="matches"
+        options={{ title: "Matches", tabBarIcon: makeTabBarIcon("matches") }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{ title: "Profile", tabBarIcon: makeTabBarIcon("profile") }}
+      />
     </Tabs>
   );
 }

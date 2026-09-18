@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: spacing.md,
   },
-  photo: { width: "100%", height: 200 },
+  photo: { width: "100%", height: 240 },
   info: { padding: spacing.cardPadding },
   meta: { marginTop: 2 },
   badgeRow: { flexDirection: "row", gap: spacing.xs, marginTop: spacing.sm },

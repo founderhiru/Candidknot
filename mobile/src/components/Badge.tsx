@@ -31,7 +31,7 @@ export function VerifiedBadge() {
 
 /** Dog has at least one health record on file — a signal, not the full passport. */
 export function HealthBadge({ hasRecords }: { hasRecords: boolean }) {
-  return hasRecords ? <Badge label="Health ✓" tone="success" /> : null;
+  return hasRecords ? <Badge label="Health" tone="success" /> : null;
 }
 
 const styles = StyleSheet.create({
