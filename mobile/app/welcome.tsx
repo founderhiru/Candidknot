@@ -8,7 +8,7 @@ const TRUST_SIGNALS = ["Safe", "Verified", "Community"];
 
 export default function WelcomeScreen() {
   return (
-    <HeroImage>
+    <HeroImage source={require("../assets/images/welcome-hero.jpg")}>
       <View style={styles.content}>
         <View style={styles.dots}>
           {[0, 1, 2, 3].map((i) => (

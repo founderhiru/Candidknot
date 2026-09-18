@@ -3,26 +3,25 @@ import { Redirect, useLocalSearchParams } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { PhotoPlaceholder } from "@/components/PhotoPlaceholder";
+import { HeroImage } from "@/components/HeroImage";
 import { SESSION_COOKIE_STORAGE_KEY, useSession } from "@/lib/auth-client";
 import { resolveInitialRoute, type SessionStatus } from "@/lib/session-guard";
 import { colors, spacing, typography } from "@/theme/tokens";
 
 /**
  * Full-bleed splash matching the brand reference (large dog-photography
- * moment first). PhotoPlaceholder's "deep" tone stands in for real hero
- * photography — see assets/images/README.md for the swap-in path once
- * real photos exist.
+ * moment first). Currently stylized warm placeholder artwork rather than
+ * a real photo — see assets/images/README.md for the swap-in path.
  */
 function LoadingSplash() {
   return (
-    <PhotoPlaceholder tone="deep" style={styles.container}>
+    <HeroImage source={require("../assets/images/splash-hero.jpg")}>
       <View style={styles.copy}>
         <Text style={styles.wordmark}>Kinro</Text>
         <Text style={styles.tagline}>Dogs bring people closer</Text>
         <ActivityIndicator style={styles.spinner} color={colors.textOnDark} />
       </View>
-    </PhotoPlaceholder>
+    </HeroImage>
   );
 }
 
@@ -104,11 +103,6 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-end",
-  },
   copy: {
     alignItems: "center",
     paddingBottom: spacing.xxl,
