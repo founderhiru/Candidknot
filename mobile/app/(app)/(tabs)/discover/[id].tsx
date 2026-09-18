@@ -78,7 +78,11 @@ export default function PublicDogDetailScreen() {
   return (
     <Screen noPadding edges={["bottom"]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <DogPhoto uri={dog.coverPhotoUrl} style={styles.hero} />
+        <DogPhoto
+          uri={dog.coverPhotoUrl}
+          demoKey={dog.slug}
+          style={styles.hero}
+        />
 
         <View style={styles.body}>
           <Text style={typography.title}>{dog.name}</Text>

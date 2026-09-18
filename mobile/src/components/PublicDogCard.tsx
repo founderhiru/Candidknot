@@ -29,7 +29,11 @@ export function PublicDogCard({
       ]}
       accessibilityRole="button"
     >
-      <DogPhoto uri={dog.coverPhotoUrl} style={styles.photo} />
+      <DogPhoto
+        uri={dog.coverPhotoUrl}
+        demoKey={dog.slug}
+        style={styles.photo}
+      />
       <View style={styles.info}>
         <Text style={typography.sectionTitle}>{dog.name}</Text>
         <Text style={[typography.bodyMuted, styles.meta]}>

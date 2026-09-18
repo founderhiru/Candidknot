@@ -10,8 +10,8 @@ import { colors, spacing, typography } from "@/theme/tokens";
 
 /**
  * Full-bleed splash matching the brand reference (large dog-photography
- * moment first). Currently stylized warm placeholder artwork rather than
- * a real photo — see assets/images/README.md for the swap-in path.
+ * moment first). Currently an illustrated dog scene rather than a real
+ * photo — see assets/images/README.md for the swap-in path.
  */
 function LoadingSplash() {
   return (
