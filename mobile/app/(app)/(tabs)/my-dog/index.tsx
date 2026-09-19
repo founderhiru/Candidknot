@@ -1,6 +1,13 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { AuthPromptSheet } from "@/components/AuthPromptSheet";
 import { Avatar } from "@/components/Avatar";
 import { Badge, HealthBadge, VerifiedBadge } from "@/components/Badge";
@@ -111,6 +118,15 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.brandRow}>
+          <Image
+            source={require("../../../../assets/images/kinro-symbol.png")}
+            style={styles.brandMark}
+            resizeMode="contain"
+          />
+          <Text style={styles.brandWordmark}>KINRO</Text>
+        </View>
+
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.greeting}>
@@ -255,6 +271,16 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   retryButton: { marginTop: spacing.md },
   scroll: { paddingTop: spacing.sm, paddingBottom: spacing.xl },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  brandMark: { width: 26, height: 24, marginRight: spacing.xs },
+  brandWordmark: {
+    ...typography.sectionTitle,
+    letterSpacing: 1,
+  },
   headerRow: {
     flexDirection: "row",
     alignItems: "flex-start",
