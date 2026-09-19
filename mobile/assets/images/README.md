@@ -14,6 +14,7 @@ needs to come from you (owned, commissioned, or properly licensed).
 | `welcome-hero.jpg` | `app/welcome.tsx` (via `HeroImage`) | Same treatment, dog + a simple abstract owner silhouette reaching toward it |
 | `dog-cover-placeholder.jpg` | `src/components/DogPhoto.tsx` (final fallback tier) | Landscape; shown only when a dog has no `demoKey` at all (see `src/lib/demo-photos.ts`) |
 | `demo-dogs/demo-dog-1.jpg` … `demo-dog-6.jpg` | `src/lib/demo-photos.ts` | Six visually-distinct illustrated dogs (different coat colors/ear styles), deterministically assigned per dog by `getDemoPhotoForKey()` — same dog always gets the same one |
+| `kinro-symbol.png`, `kinro-app-icon.png`, `kinro-android-adaptive-icon.png` | Home header (`my-dog/index.tsx`), `app.json` (`icon`, `android.adaptiveIcon.foregroundImage`) | **Real brand artwork**, not illustration — cropped directly from the approved KINRO logo file, pixels untouched. The iOS app icon and native splash logo (`ios/CanidKnot/Images.xcassets/`) are separate crops of the same source file, not re-derived from these. |
 
 ## Swapping in real photography
 
