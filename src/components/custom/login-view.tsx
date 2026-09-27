@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authClient, useSession } from '@/lib/auth-client';
+import { normalizeIndianPhone } from '@/lib/phone';
 import { siteName } from '@/lib/site';
 
 type Step = 'choose' | 'mobile-phone' | 'mobile-otp' | 'email-form' | 'email-sent';
@@ -31,7 +32,9 @@ function ErrorText({ message }: { message: string | null }) {
 // this page for exactly this reason). This reads that param back out.
 function describeRedirectError(code: string | null): string | null {
   if (!code) return null;
-  switch (code) {
+  // better-auth reports magic-link failures as upper-case codes
+  // (INVALID_TOKEN); compare case-insensitively so they aren't missed.
+  switch (code.toLowerCase()) {
     case 'access_denied':
       return 'Google sign-in was cancelled.';
     case 'invalid_token':
@@ -100,7 +103,9 @@ export function LoginView() {
 
   const sendMobileOtp = () =>
     withBusy(async () => {
-      const { error: sendError } = await authClient.phoneNumber.sendOtp({ phoneNumber: phone });
+      const { error: sendError } = await authClient.phoneNumber.sendOtp({
+        phoneNumber: normalizeIndianPhone(phone),
+      });
       if (sendError) {
         setError(sendError.message ?? 'Could not send the code.');
         return;
@@ -111,7 +116,7 @@ export function LoginView() {
   const verifyMobileOtp = () =>
     withBusy(async () => {
       const { error: verifyError } = await authClient.phoneNumber.verify({
-        phoneNumber: phone,
+        phoneNumber: normalizeIndianPhone(phone),
         code: otp,
       });
       if (verifyError) {

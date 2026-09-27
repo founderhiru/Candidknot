@@ -69,6 +69,38 @@ describe('mobile auth bridge (Phase mobile-M1)', () => {
   });
 });
 
+describe('magic link delivery config', () => {
+  it('refuses to email a localhost link in production (NEXT_PUBLIC_APP_URL left at its dev default)', async () => {
+    const { magicLink } = await import('better-auth/plugins');
+    const { sendAuthEmail } = await import('@/lib/email');
+    await import('@/lib/auth');
+    const config = vi.mocked(magicLink).mock.calls[0]?.[0] as unknown as {
+      sendMagicLink: (args: { email: string; url: string; token: string }) => Promise<void>;
+    };
+
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      await expect(
+        config.sendMagicLink({
+          email: 'a@example.com',
+          url: 'http://localhost:3000/api/auth/magic-link/verify?token=t',
+          token: 't',
+        }),
+      ).rejects.toThrow(/NEXT_PUBLIC_APP_URL/);
+      expect(sendAuthEmail).not.toHaveBeenCalled();
+
+      await config.sendMagicLink({
+        email: 'a@example.com',
+        url: 'https://kinro.example.com/api/auth/magic-link/verify?token=t',
+        token: 't',
+      });
+      expect(sendAuthEmail).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
 describe('phone OTP sign-up config', () => {
   it('configures signUpOnVerification so a brand-new phone number can actually create a User', async () => {
     // Regression test: without signUpOnVerification, better-auth's

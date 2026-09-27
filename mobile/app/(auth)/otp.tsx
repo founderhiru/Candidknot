@@ -1,14 +1,19 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ErrorText } from "@/components/ErrorText";
 import { OtpInput } from "@/components/OtpInput";
 import { Screen } from "@/components/Screen";
 import { authClient } from "@/lib/auth-client";
+import {
+  formatCooldown,
+  RESEND_COOLDOWN_SECONDS,
+  requestOtp,
+  verifyOtp,
+} from "@/lib/auth-flows";
 import { maskPhoneForDisplay } from "@/lib/phone";
+import { useCooldown } from "@/lib/use-cooldown";
 import { colors, spacing, typography } from "@/theme/tokens";
-
-const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function OtpVerificationScreen() {
   const { phone } = useLocalSearchParams<{ phone: string }>();
@@ -16,56 +21,62 @@ export default function OtpVerificationScreen() {
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
+  const [notice, setNotice] = useState<string | null>(null);
+  // A code was sent just before this screen opened, so the cooldown starts now.
+  const { remaining: cooldown, start: startCooldown } = useCooldown(
+    RESEND_COOLDOWN_SECONDS,
+  );
+  // OtpInput fires onComplete on every change that reaches 6 digits; the ref
+  // (unlike `loading` state) blocks a second submit within the same tick.
+  const submitting = useRef(false);
 
   async function handleComplete(otp: string) {
+    if (submitting.current) return;
+    submitting.current = true;
     setError(null);
+    setNotice(null);
     setLoading(true);
     try {
-      const { error: verifyError } = await authClient.phoneNumber.verify({
-        phoneNumber: `+91${digits}`,
-        code: otp,
-      });
-      if (verifyError) {
-        setError(verifyError.message ?? "Incorrect code, try again");
+      const result = await verifyOtp(authClient, digits, otp);
+      if (!result.ok) {
+        setError(result.message);
         setCode("");
         return;
       }
-      // The session cookie is already stored at this point (a normal
-      // fetch response, captured directly by @better-auth/expo's client
-      // plugin) — but app/index.tsx's useSession()-driven redirect only
-      // runs while mounted at "/", and we navigated away from it to get
-      // here, so it needs to be explicitly remounted.
+      // The session cookie is already stored and the session store signalled
+      // (@better-auth/expo does both on the verify response). app/index.tsx's
+      // useSession()-driven redirect only runs while mounted at "/", and we
+      // navigated away from it to get here, so remount it explicitly.
       router.replace("/");
-    } catch {
-      setError("Incorrect code, try again");
-      setCode("");
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }
 
   async function handleResend() {
-    if (cooldown > 0) return;
+    if (cooldown > 0 || resending || loading) return;
     setError(null);
+    setNotice(null);
+    setResending(true);
     try {
-      await authClient.phoneNumber.sendOtp({ phoneNumber: `+91${digits}` });
-      setCooldown(RESEND_COOLDOWN_SECONDS);
-    } catch {
-      setError("Couldn't resend code, try again");
+      const result = await requestOtp(authClient, digits);
+      if (!result.ok) {
+        // Cooldown deliberately NOT restarted: nothing was sent.
+        setError(result.message);
+        return;
+      }
+      setCode("");
+      setNotice("New code sent.");
+      startCooldown(RESEND_COOLDOWN_SECONDS);
+    } finally {
+      setResending(false);
     }
   }
+
+  const canResend = cooldown === 0 && !resending && !loading;
 
   return (
     <Screen>
@@ -82,18 +93,27 @@ export default function OtpVerificationScreen() {
         onComplete={handleComplete}
         disabled={loading}
       />
+      {loading ? (
+        <Text style={[typography.bodyMuted, styles.status]}>Verifying…</Text>
+      ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
+      {notice && !error ? (
+        <Text style={[typography.bodyMuted, styles.status]}>{notice}</Text>
+      ) : null}
 
       <View style={styles.footer}>
         <Pressable
           onPress={handleResend}
-          disabled={cooldown > 0}
+          disabled={!canResend}
           accessibilityRole="button"
+          accessibilityState={{ disabled: !canResend }}
         >
-          <Text style={[typography.bodyMuted, cooldown === 0 && styles.link]}>
+          <Text style={[typography.bodyMuted, canResend && styles.link]}>
             {cooldown > 0
-              ? `Resend OTP in 0:${cooldown.toString().padStart(2, "0")}`
-              : "Resend OTP"}
+              ? `Resend OTP in ${formatCooldown(cooldown)}`
+              : resending
+                ? "Sending…"
+                : "Resend OTP"}
           </Text>
         </Pressable>
         <Pressable onPress={() => router.back()} accessibilityRole="button">
@@ -107,6 +127,7 @@ export default function OtpVerificationScreen() {
 const styles = StyleSheet.create({
   header: { marginTop: spacing.xl, marginBottom: spacing.xl },
   subtitle: { marginTop: spacing.xs },
+  status: { marginTop: spacing.sm },
   footer: { marginTop: spacing.xl, gap: spacing.md, alignItems: "center" },
   link: { color: colors.accent, fontWeight: "600" },
 });

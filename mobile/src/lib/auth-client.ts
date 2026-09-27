@@ -19,11 +19,16 @@
 // Calls made through plain fetch() to our OWN /api/* routes (i.e. not
 // through this authClient) do NOT get the cookie attached automatically —
 // that is what @/lib/api-client.ts's getStoredSessionCookie() call is for.
-import { expoClient } from "@better-auth/expo/client";
+import {
+  expoClient,
+  getSetCookie,
+  storageAdapter,
+} from "@better-auth/expo/client";
 import { magicLinkClient, phoneNumberClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 import { env } from "./env";
+import { persistSessionCookie } from "./magic-link-callback";
 
 // Single source of truth for the SecureStore key @better-auth/expo's
 // expoClient plugin derives internally as `${storagePrefix}_cookie` — see
@@ -56,4 +61,20 @@ export const { useSession, signIn, signOut, phoneNumber } = authClient;
  */
 export async function getStoredSessionCookie(): Promise<string> {
   return authClient.getCookie();
+}
+
+/**
+ * Finishes an emailed magic-link sign-in. `cookie` is the `?cookie=` value the
+ * server appends to the `canidknot:///` deep link (see app/index.tsx): it is
+ * merged into the same SecureStore entry expoClient itself uses, then the
+ * session store is told to refetch — otherwise an already-running app keeps
+ * the signed-out session it cached before the link was opened.
+ */
+export async function completeMagicLinkSignIn(cookie: string): Promise<void> {
+  await persistSessionCookie(cookie, {
+    storage: storageAdapter(SecureStore),
+    storageKey: SESSION_COOKIE_STORAGE_KEY,
+    mergeCookie: getSetCookie,
+    notifySessionChanged: () => authClient.$store.notify("$sessionSignal"),
+  });
 }

@@ -6,6 +6,7 @@ import { ErrorText } from "@/components/ErrorText";
 import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/TextField";
 import { authClient } from "@/lib/auth-client";
+import { requestOtp } from "@/lib/auth-flows";
 import { isValidIndianMobileNumber } from "@/lib/phone";
 import { colors, spacing, typography } from "@/theme/tokens";
 
@@ -14,14 +15,10 @@ import { colors, spacing, typography } from "@/theme/tokens";
  * spec). Google and Email are deliberately secondary/lower-emphasis below
  * the primary field+CTA, not equal-weight tabs.
  *
- * IMPORTANT — Mobile OTP dependency: sendOtp below calls the real
- * better-auth phone-number endpoint, which is fully implemented, but the
- * backend's SMS_PROVIDER is not yet configured (see /src/lib/sms.ts at the
- * repo root) — in development it logs the code to the SERVER console
- * instead of sending a real SMS, and it throws in production until a real
- * vendor is wired in. This screen has no knowledge of that and needs no
- * change once a vendor is added; it is a pure external configuration gap,
- * not something to fake here.
+ * Mobile OTP: requestOtp (src/lib/auth-flows.ts) calls better-auth's
+ * phone-number endpoint. Real SMS delivery depends on the backend's
+ * SMS_PROVIDER being configured (see /src/lib/sms.ts and /.env.example) — an
+ * external setup step, not something this screen fakes.
  */
 export default function MobileNumberScreen() {
   const [digits, setDigits] = useState("");
@@ -38,16 +35,12 @@ export default function MobileNumberScreen() {
     setError(null);
     setLoading(true);
     try {
-      const { error: sendError } = await authClient.phoneNumber.sendOtp({
-        phoneNumber: `+91${digits}`,
-      });
-      if (sendError) {
-        setError(sendError.message ?? "Couldn't send code, try again");
+      const result = await requestOtp(authClient, digits);
+      if (!result.ok) {
+        setError(result.message);
         return;
       }
       router.push({ pathname: "/(auth)/otp", params: { phone: digits } });
-    } catch {
-      setError("Couldn't send code, try again");
     } finally {
       setLoading(false);
     }

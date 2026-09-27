@@ -1,9 +1,8 @@
-import { getSetCookie, storageAdapter } from "@better-auth/expo/client";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { SplashView } from "@/components/SplashView";
-import { SESSION_COOKIE_STORAGE_KEY, useSession } from "@/lib/auth-client";
+import { completeMagicLinkSignIn, useSession } from "@/lib/auth-client";
+import { firstParam } from "@/lib/magic-link-callback";
 import { resolveInitialRoute, type SessionStatus } from "@/lib/session-guard";
 
 /**
@@ -65,16 +64,24 @@ function SessionRedirect() {
  * app (Mail -> a browser), so verification happens on a completely
  * separate HTTP exchange the app's own authClient never sees — nothing
  * would otherwise persist that session. The server's `expo()` plugin
- * (see /src/lib/auth.ts) already appends the resulting session cookie as
- * a `?cookie=` query param on the deep-link redirect for exactly this
- * reason; the missing piece was reading it. This does that: if the app
- * was opened with a `cookie` param, persist it to the same SecureStore
- * key @better-auth/expo's expoClient plugin itself uses (via that
- * plugin's own exported helpers — no separate storage scheme), then let
- * useSession() below pick it up on its normal initial fetch.
+ * (see /src/lib/auth.ts) appends the resulting session cookie as a
+ * `?cookie=` query param on the deep-link redirect. This reads it and
+ * calls completeMagicLinkSignIn (auth-client.ts), which stores the cookie
+ * AND tells better-auth's session store to refetch — the second half is
+ * what lets an already-running app (the normal case: the user was waiting
+ * on the "check your email" screen) pick the session up.
+ *
+ * A link that can't be used (expired / already opened) reaches the app as
+ * `?error=<code>`; new builds route that to the email screen directly via
+ * errorCallbackURL, and this also catches it here for older builds' links.
  */
 export default function Index() {
-  const { cookie } = useLocalSearchParams<{ cookie?: string }>();
+  const params = useLocalSearchParams<{
+    cookie?: string | string[];
+    error?: string | string[];
+  }>();
+  const cookie = firstParam(params.cookie);
+  const linkError = firstParam(params.error);
   const [ready, setReady] = useState(!cookie);
 
   useEffect(() => {
@@ -82,18 +89,31 @@ export default function Index() {
     let active = true;
     (async () => {
       try {
-        const storage = storageAdapter(SecureStore);
-        const current = await storage.getItemAsync(SESSION_COOKIE_STORAGE_KEY);
-        const merged = getSetCookie(cookie, current ?? undefined);
-        await storage.setItemAsync(SESSION_COOKIE_STORAGE_KEY, merged);
+        await completeMagicLinkSignIn(cookie);
+      } catch {
+        // Storage failure: fall through to the normal signed-out path rather
+        // than trapping the user on the splash screen.
       } finally {
-        if (active) setReady(true);
+        if (active) {
+          setReady(true);
+          // The token must not linger in the route: re-mounting "/" (e.g.
+          // back-navigation after logout) would otherwise replay it.
+          router.setParams({ cookie: undefined });
+        }
       }
     })();
     return () => {
       active = false;
     };
   }, [cookie]);
+
+  if (linkError) {
+    return (
+      <Redirect
+        href={{ pathname: "/(auth)/email-link", params: { error: linkError } }}
+      />
+    );
+  }
 
   return !ready ? <LoadingSplash /> : <SessionRedirect />;
 }

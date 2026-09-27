@@ -36,6 +36,7 @@ import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { magicLink, phoneNumber } from 'better-auth/plugins';
 import { headers } from 'next/headers';
+import { assertPublicMagicLinkUrl, buildMagicLinkEmail } from '@/lib/auth-email-templates';
 import { prisma } from '@/lib/db';
 import { sendAuthEmail } from '@/lib/email';
 import { env } from '@/lib/env';
@@ -118,17 +119,20 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: 60 * 10, // 10 minutes
       sendMagicLink: async ({ email, url }) => {
-        await sendAuthEmail(
-          email,
-          'Your KINRO sign-in link',
-          `Sign in to KINRO by opening this link: ${url}\n\nIt expires in 10 minutes. If you didn't request this, you can ignore this email.`,
-        );
+        assertPublicMagicLinkUrl(url, process.env.NODE_ENV);
+        const { subject, text, html } = buildMagicLinkEmail(url);
+        await sendAuthEmail(email, subject, text, html);
       },
     }),
     phoneNumber({
       otpLength: 6,
-      expiresIn: 60 * 10, // 10 minutes
+      expiresIn: 60 * 10, // 10 minutes — keep in sync with OTP_EXPIRY_MINUTES in @/lib/sms
       allowedAttempts: 5,
+      // India-only for now (the app hardcodes +91). Enforced HERE, server-side,
+      // because /phone-number/send-otp is a public endpoint: once a paid SMS
+      // vendor is configured, an unrestricted number field would let anyone
+      // trigger (billable) SMS to arbitrary numbers worldwide.
+      phoneNumberValidator: (phone) => /^\+91[6-9]\d{9}$/.test(phone),
       sendOTP: async ({ phoneNumber: to, code }) => {
         await sendOtpSms(to, code);
       },
