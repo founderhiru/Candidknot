@@ -47,15 +47,61 @@ transport**:
   on a successful response. `useSession()` picks up the cleared session and
   `(app)/_layout.tsx`'s guard redirects to `/welcome`.
 
-## Mobile OTP — external dependency, not a code gap
+## Sign-in methods and what each needs
 
-The phone-number sign-in screens (`app/(auth)/mobile-number.tsx`,
-`app/(auth)/otp.tsx`) call the real, fully-implemented better-auth
-phone-number endpoints. They will not deliver a real SMS until the backend's
-`SMS_PROVIDER` is configured (see `/src/lib/sms.ts` at the repo root) — in
-development the code is logged to the **server** console instead; in
-production the sign-in attempt fails until a real vendor is wired in. No
-mobile-side change is needed when that happens.
+All three go through the same better-auth instance and end the same way: the
+session cookie lands in `expo-secure-store`, `useSession()` updates, and the
+app routes home. Google is unchanged.
+
+### Mobile OTP (SMS)
+
+`mobile-number.tsx` → `otp.tsx`, logic in `src/lib/auth-flows.ts`
+(`requestOtp` / `verifyOtp`; error copy in `src/lib/auth-errors.ts`).
+Number → code → verify; wrong / expired / too-many-attempts codes get specific
+messages; **Resend** unlocks after 30 s and a *failed* resend does not restart
+the timer. Codes are valid 10 minutes, 5 attempts.
+
+It cannot deliver a real SMS until the **backend** has an SMS provider
+configured (`SMS_PROVIDER=msg91` + `MSG91_AUTH_KEY` + `MSG91_OTP_TEMPLATE_ID`
+— see `/.env.example` and `/src/lib/sms.ts`). Until then the code is only
+logged to the server console (dev) or sign-in fails (production). No app
+change is needed when a provider is added. The server accepts only
+`+91` + a 10-digit number starting 6–9.
+
+### Email magic link
+
+1. `email-link.tsx` requests a link (`callbackURL: "/"`,
+   `errorCallbackURL: "/email-link"`); Resend emails
+   `<NEXT_PUBLIC_APP_URL>/api/auth/magic-link/verify?token=…`.
+2. Opening it verifies on the server, which redirects to
+   `canidknot:///?cookie=<session>` (success) or
+   `canidknot:///email-link?error=INVALID_TOKEN` (expired / already used).
+3. `app/index.tsx` calls `completeMagicLinkSignIn()` (`src/lib/auth-client.ts`):
+   stores the cookie **and signals better-auth's session store to refetch**
+   (without that signal an already-running app stays signed out), then the
+   normal session redirect takes over. Bad links show a message on the email
+   screen.
+
+Links expire after 10 minutes and work once. Open the email **on the same
+phone**, in Safari/Chrome (some in-app mail browsers block redirects into
+custom-scheme apps — a known limitation of custom-scheme deep links; Universal
+Links / App Links are the follow-up if it matters).
+
+### Environment for real devices
+
+- **EAS:** `EXPO_PUBLIC_API_URL` = the backend's public https origin (not
+  set in `eas.json`; see `.env.example` for the `eas env:create` command).
+  `EXPO_PUBLIC_APP_SCHEME` = `canidknot` is already set in `eas.json`.
+- **Backend (Render):** `NEXT_PUBLIC_APP_URL` = the same public https origin,
+  `MOBILE_APP_SCHEME=canidknot://` (default), `RESEND_API_KEY`, `EMAIL_FROM`
+  on a Resend-verified domain, and the SMS variables above.
+- **Deep-link identity:** scheme `canidknot`; iOS bundle ID and Android
+  package `com.canidknot.app` (unchanged). The scheme is registered in
+  `app.json` and the committed `ios/CanidKnot/Info.plist`.
+- Testing: `npm test` covers the flow logic; the full server behaviour is in
+  the root `tests/unit/auth/auth-flows.integration.test.ts`. A real SMS / email
+  / deep-link round trip can only be checked on a device with the backend
+  configured.
 
 ## Scripts
 
