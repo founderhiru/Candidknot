@@ -1,0 +1,190 @@
+// @vitest-environment node
+//
+// Unit-tests the app's OWN identity/ownership wrapper functions
+// (getAuthenticatedUser/requireAuthenticatedUser/requireResourceOwner),
+// not better-auth's internals (session storage, cookie signing, OTP/magic
+// link mechanics) — those are better-auth's own, independently maintained
+// implementation. What matters here is that our code (a) never trusts
+// anything but the server-derived session for identity, and (b) correctly
+// rejects an IDOR-style mismatch between the authenticated user and a
+// resource's actual owner.
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('server-only', () => ({}));
+vi.mock('next/headers', () => ({ headers: vi.fn(async () => new Headers()) }));
+vi.mock('@/lib/db', () => ({ prisma: {} }));
+vi.mock('@/lib/env', () => ({
+  env: {
+    SESSION_SECRET: 'test-secret-test-secret-test-secret',
+    GOOGLE_CLIENT_ID: 'test-client-id',
+    GOOGLE_CLIENT_SECRET: 'test-client-secret',
+    RESEND_API_KEY: 'test-resend-key',
+    EMAIL_FROM: 'CanidKnot <test@example.com>',
+    NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
+    MOBILE_APP_SCHEME: 'canidknot://',
+  },
+}));
+vi.mock('@/lib/email', () => ({ sendAuthEmail: vi.fn() }));
+vi.mock('@/lib/sms', () => ({ sendOtpSms: vi.fn() }));
+
+// better-auth itself, its Prisma adapter, and its plugins are mocked out —
+// this suite only needs the shape auth.ts consumes (a `betterAuth()` call
+// returning an object with `api.getSession`), not real session/OTP logic.
+const getSessionMock = vi.fn();
+vi.mock('better-auth', () => ({
+  betterAuth: vi.fn(() => ({
+    api: { getSession: getSessionMock },
+    $Infer: { Session: undefined },
+  })),
+}));
+vi.mock('better-auth/adapters/prisma', () => ({ prismaAdapter: vi.fn(() => ({})) }));
+vi.mock('better-auth/plugins', () => ({
+  magicLink: vi.fn((options: unknown) => options),
+  phoneNumber: vi.fn((options: unknown) => options),
+}));
+// Mobile (Phase mobile-M1): @/lib/auth now also registers @better-auth/expo's
+// server plugin (see auth.ts) — mocked the same way as the other plugins
+// above so this suite keeps testing only our own wrapper functions, not
+// better-auth's or @better-auth/expo's internals.
+vi.mock('@better-auth/expo', () => ({
+  expo: vi.fn(() => ({ id: 'expo' })),
+}));
+
+const FOUNDER_USER = { id: 'user_1', email: 'founder@example.com', isFounder: true };
+const REGULAR_USER = { id: 'user_2', email: 'regular@example.com', isFounder: false };
+
+describe('mobile auth bridge (Phase mobile-M1)', () => {
+  it('registers the expo() server plugin and trusts the mobile app scheme as an origin', async () => {
+    const { betterAuth } = await import('better-auth');
+    await import('@/lib/auth');
+    const config = vi.mocked(betterAuth).mock.calls[0]?.[0] as {
+      trustedOrigins?: string[];
+      plugins?: unknown[];
+    };
+    expect(config.trustedOrigins).toContain('canidknot://');
+    // expo() is mocked to return a recognizable marker — presence in the
+    // plugins array is what we're confirming, i.e. that auth.ts actually
+    // wired it in (not testing @better-auth/expo's own internals).
+    expect(config.plugins).toContainEqual({ id: 'expo' });
+  });
+});
+
+describe('magic link delivery config', () => {
+  it('refuses to email a localhost link in production (NEXT_PUBLIC_APP_URL left at its dev default)', async () => {
+    const { magicLink } = await import('better-auth/plugins');
+    const { sendAuthEmail } = await import('@/lib/email');
+    await import('@/lib/auth');
+    const config = vi.mocked(magicLink).mock.calls[0]?.[0] as unknown as {
+      sendMagicLink: (args: { email: string; url: string; token: string }) => Promise<void>;
+    };
+
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      await expect(
+        config.sendMagicLink({
+          email: 'a@example.com',
+          url: 'http://localhost:3000/api/auth/magic-link/verify?token=t',
+          token: 't',
+        }),
+      ).rejects.toThrow(/NEXT_PUBLIC_APP_URL/);
+      expect(sendAuthEmail).not.toHaveBeenCalled();
+
+      await config.sendMagicLink({
+        email: 'a@example.com',
+        url: 'https://kinro.example.com/api/auth/magic-link/verify?token=t',
+        token: 't',
+      });
+      expect(sendAuthEmail).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+describe('phone OTP sign-up config', () => {
+  it('configures signUpOnVerification so a brand-new phone number can actually create a User', async () => {
+    // Regression test: without signUpOnVerification, better-auth's
+    // phoneNumber plugin only UPDATES an existing user matched by phone
+    // number on verify — a first-time number has nothing to update, so
+    // verification throws FAILED_TO_UPDATE_USER and phone sign-up can never
+    // succeed no matter how OTP delivery is configured. Confirmed against a
+    // real local Postgres + the actual better-auth phone-number routes
+    // before this option was added.
+    const { phoneNumber } = await import('better-auth/plugins');
+    await import('@/lib/auth');
+    const config = vi.mocked(phoneNumber).mock.calls[0]?.[0] as {
+      signUpOnVerification?: { getTempEmail: (phone: string) => string };
+    };
+    expect(config.signUpOnVerification).toBeDefined();
+    // User.email is @unique and NOT NULL (prisma/schema/auth.prisma), so a
+    // phone-only signup needs a placeholder — must be non-empty and unique
+    // per phone number (not the same constant for every signup).
+    const emailA = config.signUpOnVerification?.getTempEmail('+919876543210');
+    const emailB = config.signUpOnVerification?.getTempEmail('+919876543211');
+    expect(emailA).toBeTruthy();
+    expect(emailA).not.toBe(emailB);
+  });
+});
+
+describe('getAuthenticatedUser / requireAuthenticatedUser', () => {
+  beforeEach(() => {
+    getSessionMock.mockReset();
+  });
+
+  it('returns null when there is no session (unauthenticated request)', async () => {
+    getSessionMock.mockResolvedValue(null);
+    const { getAuthenticatedUser } = await import('@/lib/auth');
+    await expect(getAuthenticatedUser()).resolves.toBeNull();
+  });
+
+  it('returns the user when a session exists (authenticated request succeeds)', async () => {
+    getSessionMock.mockResolvedValue({ session: { id: 's1' }, user: REGULAR_USER });
+    const { getAuthenticatedUser } = await import('@/lib/auth');
+    await expect(getAuthenticatedUser()).resolves.toEqual(REGULAR_USER);
+  });
+
+  it('requireAuthenticatedUser throws AuthError for no session (also covers logged-out/expired sessions, which getSession likewise resolves to null for)', async () => {
+    getSessionMock.mockResolvedValue(null);
+    const { requireAuthenticatedUser, AuthError } = await import('@/lib/auth');
+    await expect(requireAuthenticatedUser()).rejects.toBeInstanceOf(AuthError);
+  });
+
+  it('requireAuthenticatedUser resolves with the user when authenticated', async () => {
+    getSessionMock.mockResolvedValue({ session: { id: 's1' }, user: REGULAR_USER });
+    const { requireAuthenticatedUser } = await import('@/lib/auth');
+    await expect(requireAuthenticatedUser()).resolves.toEqual(REGULAR_USER);
+  });
+});
+
+describe('requireResourceOwner (IDOR protection)', () => {
+  beforeEach(() => {
+    getSessionMock.mockReset();
+  });
+
+  it('rejects an unauthenticated caller regardless of the resource', async () => {
+    getSessionMock.mockResolvedValue(null);
+    const { requireResourceOwner, AuthError } = await import('@/lib/auth');
+    await expect(requireResourceOwner('user_1')).rejects.toBeInstanceOf(AuthError);
+  });
+
+  it("rejects User A when the resource belongs to User B (client cannot reach another user's resource)", async () => {
+    getSessionMock.mockResolvedValue({ session: { id: 's1' }, user: REGULAR_USER });
+    const { requireResourceOwner, AuthError } = await import('@/lib/auth');
+    // REGULAR_USER (user_2) attempting to access a resource actually owned
+    // by user_1 — the ownerId here stands in for a value loaded from the
+    // DB row being acted on, never from client input.
+    await expect(requireResourceOwner(FOUNDER_USER.id)).rejects.toBeInstanceOf(AuthError);
+  });
+
+  it('allows the authenticated owner to access their own resource', async () => {
+    getSessionMock.mockResolvedValue({ session: { id: 's1' }, user: REGULAR_USER });
+    const { requireResourceOwner } = await import('@/lib/auth');
+    await expect(requireResourceOwner(REGULAR_USER.id)).resolves.toEqual(REGULAR_USER);
+  });
+
+  it('rejects access to an ownerless (system/demo) resource — nobody "owns" it', async () => {
+    getSessionMock.mockResolvedValue({ session: { id: 's1' }, user: REGULAR_USER });
+    const { requireResourceOwner, AuthError } = await import('@/lib/auth');
+    await expect(requireResourceOwner(null)).rejects.toBeInstanceOf(AuthError);
+  });
+});
