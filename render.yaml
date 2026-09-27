@@ -59,9 +59,15 @@ services:
         sync: false
       - key: EMAIL_FROM
         sync: false # e.g. "KINRO <onboarding@resend.dev>" until a verified domain exists
-      # SMS_PROVIDER intentionally omitted — no vendor chosen yet (see
-      # src/lib/sms.ts). Phone sign-in refuses to run in production without
-      # it; add it here once a vendor is selected.
+      # SMS: phone sign-in refuses to run in production until a provider is
+      # configured (src/lib/sms.ts). Deliberately NOT declared yet — add these
+      # in the Render dashboard (Environment) once you approve a vendor:
+      #   SMS_PROVIDER=msg91
+      #   MSG91_AUTH_KEY=<secret>
+      #   MSG91_OTP_TEMPLATE_ID=<DLT-approved OTP template id>
+      # Also required for magic links: NEXT_PUBLIC_APP_URL (above) must be the
+      # public https origin, and EMAIL_FROM must be on a Resend-verified domain
+      # to reach anyone other than the Resend account owner.
       # Reserved for later phases — added here as documentation, left unset
       # until the corresponding phase wires the reading code:
       #   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME,
