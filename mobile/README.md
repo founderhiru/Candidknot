@@ -116,6 +116,43 @@ Links / App Links are the follow-up if it matters).
   modules are mocked the same way the web app's own tests mock better-auth,
   so these run without a simulator or device.
 
+## Building for iOS with EAS
+
+This project ships a native `ios/` folder committed to the repo (produced by
+`expo prebuild`), so EAS Build uses that project **as-is** — it does not
+re-sync `app.json`'s `ios`/`plugins`/`icon`/etc. fields into it. Any future
+native-config change (new permission string, new plugin) must be made
+directly under `ios/CanidKnot/` (or via `expo prebuild --clean`, which
+regenerates the folder and should only be done deliberately, since it can
+overwrite hand-edited native files).
+
+What's already in place: bundle ID `com.canidknot.app`, deep-link scheme
+`canidknot`, camera/photo usage strings, a 1024×1024 App Store–ready icon,
+deployment target 15.1, and `eas.json` build/submit profiles (App Store
+Connect app id already set under `submit.production.ios.ascAppId`).
+
+Remaining steps are account-side and can't be done from a checkout alone:
+
+1. **`EXPO_PUBLIC_API_URL`** — not set in `eas.json` on purpose (see
+   *Environment for real devices* above). Set it once per environment:
+   ```
+   eas env:create --name EXPO_PUBLIC_API_URL --value https://<your-backend> \
+     --environment production --environment preview
+   ```
+   A build made without this silently points at `localhost` and every
+   sign-in request fails on a real device — the app logs a warning for this
+   at startup, but only visible in device logs.
+2. **Apple credentials** — first `eas build --platform ios` will offer to
+   let EAS generate/manage a distribution certificate and provisioning
+   profile for `com.canidknot.app` (needs an Apple Developer Program
+   account with access to that bundle ID). Answer "yes" to let EAS manage
+   them unless you already have your own.
+3. **Build:** `eas build --platform ios --profile preview` (TestFlight-style
+   build) or `--profile production` (App Store).
+4. **Submit:** `eas submit --platform ios --latest` — uses the
+   `ascAppId` already configured in `eas.json`; needs an App Store Connect
+   API key (`eas credentials`) the first time.
+
 ## Running on Xcode 27 (Device Hub)
 
 Xcode 27 removed `Simulator.app`; its replacement is **Device Hub**
@@ -195,7 +232,6 @@ changes version while the patch is still present.
 
 ## Known limitations (M1)
 
-- No app icon/splash image assets yet — Expo's defaults are used.
 - Welcome screen is typography-only; hero photography is a design asset
   gap, not a code gap.
 - Web target (`expo start --web`) is not supported — `expo-secure-store`

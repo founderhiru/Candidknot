@@ -119,9 +119,28 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: 60 * 10, // 10 minutes
       sendMagicLink: async ({ email, url }) => {
-        assertPublicMagicLinkUrl(url, process.env.NODE_ENV);
-        const { subject, text, html } = buildMagicLinkEmail(url);
-        await sendAuthEmail(email, subject, text, html);
+        try {
+          assertPublicMagicLinkUrl(url, process.env.NODE_ENV);
+          const { subject, text, html } = buildMagicLinkEmail(url);
+          await sendAuthEmail(email, subject, text, html);
+        } catch (error) {
+          // Any failure here (bad NEXT_PUBLIC_APP_URL, Resend rejection, etc.)
+          // propagates up and better-auth turns it into a generic, body-less
+          // HTTP 500 — the client only ever shows its own safe fallback text
+          // ("Could not send the sign-in link."), never this message. This is
+          // the ONE place that logs the real cause, so it's actually
+          // diagnosable from Render's logs (production) or the dev terminal,
+          // without ever reaching the client. Never log RESEND_API_KEY or any
+          // other secret here.
+          // biome-ignore lint/suspicious/noConsole: intentional operational log — see comment above.
+          console.error(
+            '[auth:magic-link] failed to send sign-in email to',
+            email,
+            '-',
+            error instanceof Error ? error.message : error,
+          );
+          throw error;
+        }
       },
     }),
     phoneNumber({
